@@ -1,6 +1,9 @@
 use num_bigint::BigUint;
 use rsa::pkcs1v15::Signature;
 use rsa::{RsaPrivateKey, RsaPublicKey};
+use signature::Keypair;
+use signature::RandomizedSignerMut;
+use std::env;
 use toml::Value;
 
 use rsa::signature::{SignatureEncoding, Signer};
@@ -28,7 +31,7 @@ fn format_limbs_as_toml_value(limbs: &Vec<BigUint>) -> Vec<Value> {
         .collect()
 }
 
-fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u32) {
+fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u32, pss: bool) {
     let mut hasher = Sha256::new();
     hasher.update(msg.as_bytes());
     let hashed_message = hasher.finalize();
@@ -46,12 +49,16 @@ fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u3
             .expect("failed to generate a key");
     let pub_key: RsaPublicKey = priv_key.clone().into();
 
-    let signing_key = rsa::pkcs1v15::SigningKey::<Sha256>::new(priv_key);
-    let sig: Vec<u8> = signing_key.sign(msg.as_bytes()).to_vec();
+    let sig_bytes = if pss {
+        let mut signing_key = rsa::pss::BlindedSigningKey::<Sha256>::new(priv_key);
+        let sig = signing_key.sign_with_rng(&mut rng, msg.as_bytes());
+        sig.to_vec()
+    } else {
+        let signing_key = rsa::pkcs1v15::SigningKey::<Sha256>::new(priv_key);
+        signing_key.sign(msg.as_bytes()).to_vec()
+    };
 
-    let sig_bytes = &Signature::try_from(sig.as_slice()).unwrap().to_bytes();
-
-    let sig_uint: BigUint = BigUint::from_bytes_be(sig_bytes);
+    let sig_uint: BigUint = BigUint::from_bytes_be(&sig_bytes);
 
     let sig_str = bn_limbs(sig_uint.clone(), 2048);
 
@@ -180,6 +187,12 @@ fn main() {
                 .help("Number of bits of RSA signature (1024 or 2048")
                 .default_value("2048"),
         )
+        .arg(
+            Arg::with_name("pss")
+                .short("p")
+                .long("pss")
+                .help("Use RSA PSS"),
+        )
         .get_matches();
 
     let msg = matches.value_of("msg").unwrap();
@@ -190,10 +203,29 @@ fn main() {
         b == 1024 || b == 2048,
         "Number of bits of RSA signature can only be 1024 or 2048"
     );
+    let pss = matches.is_present("pss");
+
+    generate_2048_bit_signature_parameters(msg, as_toml, e, pss);
+}
+
+fn test_signature_generation_impl() {
+    let mut rng = rand::thread_rng();
+    let bits = 2048;
+    let priv_key = RsaPrivateKey::new(&mut rng, bits).expect("failed to generate a key");
+    let pub_key: RsaPublicKey = priv_key.clone().into();
+    let text: &str = "hello world";
+    let signing_key = rsa::pkcs1v15::SigningKey::<Sha256>::new(priv_key);
+    let sig: Vec<u8> = signing_key.sign(text.as_bytes()).to_vec();
+    let verifying_key = VerifyingKey::<Sha256>::new(pub_key);
+
+    let result = verifying_key.verify(
+        text.as_bytes(),
+        &Signature::try_from(sig.as_slice()).unwrap(),
+    );
     if b == 1024 {
         generate_1024_bit_signature_parameters(msg, as_toml, e);
     } else {
-        generate_2048_bit_signature_parameters(msg, as_toml, e);
+        generate_2048_bit_signature_parameters(msg, as_toml, e, pss);
     }
 }
 
@@ -224,3 +256,4 @@ mod tests {
         result.expect("failed to verify");
     }
 }
+
