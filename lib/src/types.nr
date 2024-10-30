@@ -1,11 +1,10 @@
 use dep::bignum::BigNum;
-use dep::bignum::runtime_bignum::BigNumInstance;
 use dep::bignum::fields::Params2048;
 use dep::bignum::fields::Params1024;
 use dep::bignum::fields::Params4096;
 use dep::bignum::runtime_bignum::BigNumParamsTrait;
 
-struct RSA<BN, BNInstance, let NumBytes: u32>{}
+struct RSA<let NumLimbs: u32, let NumBytes: u32> {}
 
 struct Params1025 {}
 impl BigNumParamsTrait<9> for Params1025 {

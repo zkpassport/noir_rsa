@@ -205,10 +205,14 @@ fn main() {
     );
     let pss = matches.is_present("pss");
 
-    generate_2048_bit_signature_parameters(msg, as_toml, e, pss);
+    if b == 1024 {
+        generate_1024_bit_signature_parameters(msg, as_toml, e);
+    } else {
+        generate_2048_bit_signature_parameters(msg, as_toml, e, pss);
+    }
 }
 
-fn test_signature_generation_impl() {
+/*fn test_signature_generation_impl() {
     let mut rng = rand::thread_rng();
     let bits = 2048;
     let priv_key = RsaPrivateKey::new(&mut rng, bits).expect("failed to generate a key");
@@ -227,7 +231,7 @@ fn test_signature_generation_impl() {
     } else {
         generate_2048_bit_signature_parameters(msg, as_toml, e, pss);
     }
-}
+}*/
 
 #[cfg(test)]
 mod tests {
