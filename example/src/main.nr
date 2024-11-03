@@ -1,11 +1,8 @@
-// use dep::bignum::BigNum;
 use dep::bignum::params::BigNumParams;
 use dep::bignum::RuntimeBigNum;
 
-// use dep::std;
-
 use dep::rsa::rsa::verify_sha256_pkcs1v15;
-use dep::rsa::types::RBN2048;
+use dep::rsa::types::RBN2048; // Used if we can solve the error described in comments below.
 
 // If you uncomment this and the corresponding call to it in the test, you'll see an error. I don't understand why that error is so.
 // fn main(hash: [u8; 32], signature: RuntimeBigNum<18, 2048>) {
