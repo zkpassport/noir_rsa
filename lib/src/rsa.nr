@@ -1,5 +1,5 @@
-use dep::bignum::runtime_bignum::RuntimeBigNum;
 use dep::bignum::params::BigNumParams;
+use dep::bignum::runtime_bignum::RuntimeBigNum;
 global HASH_LEN: u32 = 32;
 
 fn reverse_array<let N: u32>(array: [u8; N]) -> [u8; N] {
@@ -135,7 +135,6 @@ pub fn verify_sha256_pss<let NumLimbs: u32, let ModBits: u32>(
     // Convert the exponentiated signature to a byte array and reverse it to
     // get it in big endian order, which is much easier to work with for
     // the rest of the verification process
-
     let em: [u8; (ModBits + 7) / 8] = reverse_array(exponentiated.to_le_bytes());
 
     // The modulus size in bits minus 1
@@ -368,7 +367,7 @@ fn test_verify_sha256_pkcs1v15_2048() {
             0x27910e77bdc54ba42a4322a5ce8200,
             0xc3b7b95e779c9a11895c88fe24bced,
             0x96,
-        ]
+        ],
     };
     assert(verify_sha256_pkcs1v15(sha256_hash, signature, 65537));
 }
