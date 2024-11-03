@@ -27,7 +27,7 @@ fn main(
 #[test]
 fn test_main() {
     // Create runtime params:
-    let has_multiplicative_inverse = false;
+    let has_multiplicative_inverse = true;
     let modulus_limbs = [
         0x413f4f8b6405fdb76f85540f5663c5,
         0x1dffa8aaa6192d9f031a8c1d55dc33,
