@@ -1,5 +1,7 @@
-use dep::bignum::runtime_bignum::RuntimeBigNum;
+use dep::bignum::RuntimeBigNum;
 use dep::bignum::params::BigNumParams;
+use crate::types::{RBN1024, RBN2048, RBN1964, RBN4096, RBN1025, Params1024, Params2048, Params1964, Params4096, Params1025};
+
 global HASH_LEN: u32 = 32;
 
 fn reverse_array<let N: u32>(array: [u8; N]) -> [u8; N] {
@@ -255,7 +257,7 @@ pub fn verify_sha256_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
 #[test]
 fn test_verify_sha256_pkcs1v15_1024() {
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world! test#123".as_bytes());
-    let params: BigNumParams<9, 1024> = BigNumParams::new(
+    let params: Params1024 = BigNumParams::new(
         false,
         [
             0x483fd4238ca29c3a06f8161ee16faf,
@@ -281,7 +283,7 @@ fn test_verify_sha256_pkcs1v15_1024() {
         ],
     );
 
-    let signature: RuntimeBigNum<9, 1024> = RuntimeBigNum {
+    let signature: RBN1024 = RuntimeBigNum {
         params,
         limbs: [
             0xe6fe1016893fed66550af77d706698,
@@ -303,7 +305,7 @@ fn test_verify_sha256_pkcs1v15_1024() {
 fn test_verify_sha256_pkcs1v15_2048() {
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
 
-    let params: BigNumParams<18, 2048> = BigNumParams::new(
+    let params: Params2048 = BigNumParams::new(
         false,
         [
             0x6d235ca5aab99a4c05ff2a03574427,
@@ -347,7 +349,7 @@ fn test_verify_sha256_pkcs1v15_2048() {
         ],
     );
 
-    let signature: RuntimeBigNum<18, 2048> = RuntimeBigNum {
+    let signature: RBN2048 = RuntimeBigNum {
         params,
         limbs: [
             0xad8c7c5ec9162b4769e0cfe5ebf840,
@@ -377,7 +379,7 @@ fn test_verify_sha256_pkcs1v15_2048() {
 fn test_verify_sha256_pkcs1v15_2048_exponent_3() {
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world".as_bytes());
 
-    let params: BigNumParams<18, 2048> = BigNumParams::new(
+    let params: Params2048 = BigNumParams::new(
         false,
         [
             0xea12ae77c634ac18e8914b0f112919,
@@ -421,7 +423,7 @@ fn test_verify_sha256_pkcs1v15_2048_exponent_3() {
         ],
     );
 
-    let signature: RuntimeBigNum<18, 2048> = RuntimeBigNum {
+    let signature: RBN2048 = RuntimeBigNum {
         params,
         limbs: [
             0xcd01362e23da8aa633cb5a0fb9808d,
@@ -462,7 +464,7 @@ fn test_mgf1_sha256() {
 #[test]
 fn test_verify_sha256_pss_2048() {
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
-    let params: BigNumParams<18, 2048> = BigNumParams::new(
+    let params: Params2048 = BigNumParams::new(
         false,
         [
             0x9c149f9aa49db0ee279be7b1b9f2b1,
@@ -505,7 +507,7 @@ fn test_verify_sha256_pss_2048() {
             0x176,
         ],
     );
-    let signature: RuntimeBigNum<18, 2048> = RuntimeBigNum {
+    let signature: RBN2048 = RuntimeBigNum {
         params,
         limbs: [
             0x17b138e0afc2893ae13d2eea1ce349,
@@ -534,7 +536,7 @@ fn test_verify_sha256_pss_2048() {
 #[test]
 fn test_verify_sha256_pss_4096() {
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
-    let params: BigNumParams<35, 4096> = BigNumParams::new(
+    let params: Params4096 = BigNumParams::new(
         false,
         [
             0x172c834a6c2cb4f31cc7da80a6d4ff,
@@ -611,7 +613,7 @@ fn test_verify_sha256_pss_4096() {
             0x1492f,
         ],
     );
-    let signature: RuntimeBigNum<35, 4096> = RuntimeBigNum {
+    let signature: RBN4096 = RuntimeBigNum {
         params,
         limbs: [
             0xac63ce14a64cd6a4b1f9659b26410b,
@@ -659,7 +661,7 @@ fn test_verify_sha256_pss_4096() {
 #[test]
 fn test_verify_sha256_pss_1964() {
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
-    let params: BigNumParams<17, 1964> = BigNumParams::new(
+    let params: Params1964 = BigNumParams::new(
         false,
         [
             0x2a035f94929bb130deaf854028f433,
@@ -700,7 +702,7 @@ fn test_verify_sha256_pss_1964() {
             0x13e6ce9d6a14,
         ],
     );
-    let signature: RuntimeBigNum<17, 1964> = RuntimeBigNum {
+    let signature: RBN1964 = RuntimeBigNum {
         params,
         limbs: [
             0x29787913470259aee2641be22694c6,
@@ -730,7 +732,7 @@ fn test_verify_sha256_pss_1964() {
 #[test]
 fn test_verify_sha256_pss_1025() {
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
-    let params: BigNumParams<9, 1025> = BigNumParams::new(
+    let params: Params1025 = BigNumParams::new(
         false,
         [
             0xaf85e53c4a91594f53511cd0e31935,
@@ -756,7 +758,7 @@ fn test_verify_sha256_pss_1025() {
         ],
     );
 
-    let signature: RuntimeBigNum<9, 1025> = RuntimeBigNum {
+    let signature: RBN1025 = RuntimeBigNum {
         params,
         limbs: [
             0x577f3f0b0fb8562169a0e15bd1c464,

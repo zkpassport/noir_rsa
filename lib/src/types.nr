@@ -1,38 +1,14 @@
-use dep::bignum::BigNum;
-use dep::bignum::fields::Params2048;
-use dep::bignum::fields::Params1024;
-use dep::bignum::fields::Params4096;
-use dep::bignum::runtime_bignum::BigNumParamsTrait;
+use dep::bignum::RuntimeBigNum;
+use dep::bignum::params::BigNumParams;
 
-struct RSA<let NumLimbs: u32, let NumBytes: u32> {}
+pub type Params1024 = BigNumParams<9, 1024>;
+pub type Params1025 = BigNumParams<9, 1025>;
+pub type Params1964 = BigNumParams<17, 1946>;
+pub type Params2048 = BigNumParams<18, 2048>;
+pub type Params4096 = BigNumParams<35, 4096>;
 
-struct Params1025 {}
-impl BigNumParamsTrait<9> for Params1025 {
-    fn modulus_bits() -> u32 {
-        1025
-    }
-}
-
-struct Params1964 {}
-impl BigNumParamsTrait<17> for Params1964 {
-    fn modulus_bits() -> u32 {
-        1964
-    }
-}
-
-type BN1024 = BigNum<9, Params1024>;
-type BN1025 = BigNum<9, Params1025>;
-type BN1964 = BigNum<17, Params1964>;
-type BN2048 = BigNum<18, Params2048>;
-type BN4096 = BigNum<35, Params4096>;
-type BNInst1024 = BigNumInstance<9, Params1024>;
-type BNInst1025 = BigNumInstance<9, Params1025>;
-type BNInst1964 = BigNumInstance<17, Params1964>;
-type BNInst2048 = BigNumInstance<18, Params2048>;
-type BNInst4096 = BigNumInstance<35, Params4096>;
-
-type RSA1024 = RSA<BN1024, BNInst1024, 128>;
-type RSA1025 = RSA<BN1025, BNInst1025, 129>;
-type RSA1964 = RSA<BN1964, BNInst1964, 246>;
-type RSA2048 = RSA<BN2048, BNInst2048, 256>;
-type RSA4096 = RSA<BN4096, BNInst4096, 512>;
+pub type RBN1024 = RuntimeBigNum<9, 1024>;
+pub type RBN1025 = RuntimeBigNum<9, 1025>;
+pub type RBN1964 = RuntimeBigNum<17, 1946>;
+pub type RBN2048 = RuntimeBigNum<18, 2048>;
+pub type RBN4096 = RuntimeBigNum<35, 4096>;
