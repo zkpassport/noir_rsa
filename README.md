@@ -12,7 +12,7 @@ For the results, "UP" stands for UltraPlonk and "UH" stands for UltraHonk.
 
 The benchmark results for the verification of one signature are the following:
 
-| **Bit length** | **Circuit size** | **Avg. proving time (UP) [ms]**  | **Avg. proving time (UH) [ms]** | 
+| **Bit length** | **Circuit size** | **Avg. proving time (UP) [ms]**  | **Avg. proving time (UH) [ms]** |
 |----------------|------------------|---------------------------------|--------------------------------------|
 |           1024 |             2204 |                           234.8 |                             181 |
 |           2048 |             7131 |                           345.6 |                           261.9 |
@@ -21,14 +21,14 @@ Also, the results for the verification of 10 signatures are the following:
 
 | **Bit length** | **Circuit size** | **Avg. proving time (UP) [ms]** | **Avg. proving time (UH) [ms]** |
 |----------------|------------------|---------------------------------|--------------------------------------|
-|           1024 |            21516 |                           970.9 |                           514.4 |   
+|           1024 |            21516 |                           970.9 |                           514.4 |
 |           2048 |            63821 |                          1801.7 |                           964.2 |
 
 The benchmarks were executed using a laptop with Intel(R) Core(TM) i7-13700H CPU and 32 GB of RAM.
 
 ## Dependencies
 
-`noir_rsa` requires Noir ≥v0.35.0. Refer to [Noir's docs](https://noir-lang.org/docs/getting_started/installation/) for installation steps.
+`noir_rsa` requires Noir ≥v0.36.0. Refer to [Noir's docs](https://noir-lang.org/docs/getting_started/installation/) for installation steps.
 
 ## Installation
 
