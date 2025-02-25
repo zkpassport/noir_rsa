@@ -8,7 +8,7 @@ use toml::Value;
 
 use rsa::signature::{SignatureEncoding, Signer};
 use rsa::traits::PublicKeyParts;
-use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha256, Sha384, Sha512};
 
 use clap::{App, Arg};
 
@@ -240,7 +240,7 @@ mod tests {
     use rsa::pkcs1v15::Signature;
     use rsa::signature::{Signer, Verifier};
     use rsa::{pkcs1v15::VerifyingKey, RsaPrivateKey, RsaPublicKey};
-    use sha2::Sha256;
+    use sha2::{Sha256, Sha384, Sha512};
 
     #[test]
     fn test_signature_generation() {
@@ -252,6 +252,42 @@ mod tests {
         let signing_key = rsa::pkcs1v15::SigningKey::<Sha256>::new(priv_key);
         let sig: Vec<u8> = signing_key.sign(text.as_bytes()).to_vec();
         let verifying_key = VerifyingKey::<Sha256>::new(pub_key);
+
+        let result = verifying_key.verify(
+            text.as_bytes(),
+            &Signature::try_from(sig.as_slice()).unwrap(),
+        );
+        result.expect("failed to verify");
+    }
+
+    #[test]
+    fn test_signature_generation_sha384() {
+        let mut rng = thread_rng();
+        let bits = 2048;
+        let priv_key = RsaPrivateKey::new(&mut rng, bits).expect("failed to generate a key");
+        let pub_key: RsaPublicKey = priv_key.clone().into();
+        let text: &str = "hello world";
+        let signing_key = rsa::pkcs1v15::SigningKey::<Sha384>::new(priv_key);
+        let sig: Vec<u8> = signing_key.sign(text.as_bytes()).to_vec();
+        let verifying_key = VerifyingKey::<Sha384>::new(pub_key);
+
+        let result = verifying_key.verify(
+            text.as_bytes(),
+            &Signature::try_from(sig.as_slice()).unwrap(),
+        );
+        result.expect("failed to verify");
+    }
+
+    #[test]
+    fn test_signature_generation_sha512() {
+       let mut rng = thread_rng();
+        let bits = 2048;
+        let priv_key = RsaPrivateKey::new(&mut rng, bits).expect("failed to generate a key");
+        let pub_key: RsaPublicKey = priv_key.clone().into();
+        let text: &str = "hello world";
+        let signing_key = rsa::pkcs1v15::SigningKey::<Sha384>::new(priv_key);
+        let sig: Vec<u8> = signing_key.sign(text.as_bytes()).to_vec();
+        let verifying_key = VerifyingKey::<Sha384>::new(pub_key);
 
         let result = verifying_key.verify(
             text.as_bytes(),

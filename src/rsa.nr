@@ -1,10 +1,14 @@
-use dep::bignum::RuntimeBigNum;
-use dep::bignum::params::BigNumParams;
 use crate::types::{
-    RBN1024, RBN2048, RBN4096, RBN1025, Params1024, Params2048, Params4096, Params1025,
+    Params1024, Params1025, Params2048, Params4096, RBN1024, RBN1025, RBN2048, RBN4096,
 };
+use dep::bignum::params::BigNumParams;
+use dep::bignum::RuntimeBigNum;
+use sha256;
+use sha512::{sha384, sha512};
 
-global HASH_LEN: u32 = 32;
+global SHA256_HASH_LEN: u32 = 32;
+global SHA384_HASH_LEN: u32 = 48;
+global SHA512_HASH_LEN: u32 = 64;
 
 fn reverse_array<let N: u32>(array: [u8; N]) -> [u8; N] {
     let mut reversed = [0 as u8; N];
@@ -37,16 +41,16 @@ fn pow(base: u32, exp: u32) -> u32 {
  * @brief Generate a mask from a seed using the MGF1 algorithm with SHA256 as the hash function
  **/
 fn mgf1_sha256<let SEED_LEN: u32, let MASK_LEN: u32>(seed: [u8; SEED_LEN]) -> [u8; MASK_LEN] {
-    // MASK_LEN must be less than 2^32 * HASH_LEN
-    dep::std::field::bn254::assert_lt(MASK_LEN as Field, 0xffffffff * HASH_LEN as Field + 1);
+    // MASK_LEN must be less than 2^32 * SHA256_HASH_LEN
+    dep::std::field::bn254::assert_lt(MASK_LEN as Field, 0xffffffff * SHA256_HASH_LEN as Field + 1);
 
-    // HASH_LEN bytes are added at each iteration and there is at least 1 iteration
-    // so if HASH_LEN is not enough to fill MASK_LEN bytes in one iteration,
+    // SHA256_HASH_LEN bytes are added at each iteration and there is at least 1 iteration
+    // so if SHA256_HASH_LEN is not enough to fill MASK_LEN bytes in one iteration,
     // another one is required and so on.
-    let iterations = (MASK_LEN / HASH_LEN) + 1;
+    let iterations = (MASK_LEN / SHA256_HASH_LEN) + 1;
 
     let mut mask: [u8; MASK_LEN] = [0; MASK_LEN];
-    let mut hashed: [u8; HASH_LEN] = [0; HASH_LEN];
+    let mut hashed: [u8; SHA256_HASH_LEN] = [0; SHA256_HASH_LEN];
 
     for i in 0..iterations {
         let mut block: [u8; SEED_LEN + 4] = [0; SEED_LEN + 4];
@@ -64,12 +68,94 @@ fn mgf1_sha256<let SEED_LEN: u32, let MASK_LEN: u32>(seed: [u8; SEED_LEN]) -> [u
 
         // Hash the block
         // First SEED_LEN bytes are the seed, next 4 bytes are the counter
-        hashed = dep::std::hash::sha256_var(block, SEED_LEN as u64 + 4);
+        hashed = sha256::sha256_var(block, SEED_LEN as u64 + 4);
 
         // Copy hashed output to mask
-        for j in 0..HASH_LEN {
-            if i * HASH_LEN + j < MASK_LEN {
-                mask[i * HASH_LEN + j] = hashed[j];
+        for j in 0..SHA256_HASH_LEN {
+            if i * SHA256_HASH_LEN + j < MASK_LEN {
+                mask[i * SHA256_HASH_LEN + j] = hashed[j];
+            }
+        }
+    }
+
+    mask
+}
+
+/**
+ * @brief Generate a mask from a seed using the MGF1 algorithm with SHA384 as the hash function
+ **/
+fn mgf1_sha384<let SEED_LEN: u32, let MASK_LEN: u32>(seed: [u8; SEED_LEN]) -> [u8; MASK_LEN] {
+    // MASK_LEN must be less than 2^32 * SHA384_HASH_LEN
+    dep::std::field::bn254::assert_lt(MASK_LEN as Field, 0xffffffff * SHA384_HASH_LEN as Field + 1);
+
+    // SHA384_HASH_LEN bytes are added at each iteration
+    let iterations = (MASK_LEN / SHA384_HASH_LEN) + 1;
+
+    let mut mask: [u8; MASK_LEN] = [0; MASK_LEN];
+    let mut hashed: [u8; SHA384_HASH_LEN] = [0; SHA384_HASH_LEN];
+
+    for i in 0..iterations {
+        let mut block: [u8; SEED_LEN + 4] = [0; SEED_LEN + 4];
+
+        // Copy seed to block
+        for j in 0..SEED_LEN {
+            block[j] = seed[j];
+        }
+
+        // Add counter to block
+        let counter_bytes: [u8; 4] = (i as Field).to_be_bytes();
+        for j in 0..4 {
+            block[SEED_LEN + j] = counter_bytes[j];
+        }
+
+        let block_vec = BoundedVec::from_parts(block, SEED_LEN + 4);
+        hashed = sha384::sha384_var(block_vec);
+
+        // Copy hashed output to mask
+        for j in 0..SHA384_HASH_LEN {
+            if i * SHA384_HASH_LEN + j < MASK_LEN {
+                mask[i * SHA384_HASH_LEN + j] = hashed[j];
+            }
+        }
+    }
+
+    mask
+}
+
+/**
+ * @brief Generate a mask from a seed using the MGF1 algorithm with SHA512 as the hash function
+ **/
+fn mgf1_sha512<let SEED_LEN: u32, let MASK_LEN: u32>(seed: [u8; SEED_LEN]) -> [u8; MASK_LEN] {
+    // MASK_LEN must be less than 2^32 * SHA512_HASH_LEN
+    dep::std::field::bn254::assert_lt(MASK_LEN as Field, 0xffffffff * SHA512_HASH_LEN as Field + 1);
+
+    // SHA512_HASH_LEN bytes are added at each iteration
+    let iterations = (MASK_LEN / SHA512_HASH_LEN) + 1;
+
+    let mut mask: [u8; MASK_LEN] = [0; MASK_LEN];
+    let mut hashed: [u8; SHA512_HASH_LEN] = [0; SHA512_HASH_LEN];
+
+    for i in 0..iterations {
+        let mut block: [u8; SEED_LEN + 4] = [0; SEED_LEN + 4];
+
+        // Copy seed to block
+        for j in 0..SEED_LEN {
+            block[j] = seed[j];
+        }
+
+        // Add counter to block
+        let counter_bytes: [u8; 4] = (i as Field).to_be_bytes();
+        for j in 0..4 {
+            block[SEED_LEN + j] = counter_bytes[j];
+        }
+
+        let block_vec = BoundedVec::from_parts(block, SEED_LEN + 4);
+        hashed = sha512::sha512_var(block_vec);
+
+        // Copy hashed output to mask
+        for j in 0..SHA512_HASH_LEN {
+            if i * SHA512_HASH_LEN + j < MASK_LEN {
+                mask[i * SHA512_HASH_LEN + j] = hashed[j];
             }
         }
     }
@@ -117,6 +203,166 @@ fn compare_signature_sha256<let N: u32>(padded_sha256_hash: [u8; N], msg_hash: [
     }
 
     true
+}
+
+/**
+ * @brief Compare a recovered byte hash from an RSA signature using SHA-384 to the original message hash
+ **/
+fn compare_signature_sha384<let N: u32>(padded_sha384_hash: [u8; N], msg_hash: [u8; 48]) -> bool {
+    // Get length of sig (e.g. 1048 = 128 bytes, 2048 = 256 bytes)
+    for i in 0..48 {
+        // Padded hash is reversed
+        assert(padded_sha384_hash[47 - i] == msg_hash[i]);
+    }
+
+    // SHA-384 ASN.1 DER identifier
+    let hash_prefix: [u8; 19] =
+        [48, 4, 0, 5, 2, 2, 4, 3, 101, 1, 72, 134, 96, 9, 6, 13, 48, 65, 48];
+
+    for i in 48..67 {
+        assert(hash_prefix[i - 48] == padded_sha384_hash[i]);
+    }
+
+    assert(padded_sha384_hash[67] == 0);
+
+    // Sub 48 bytes for hash, 19 bytes for prefix, 1 byte for 0, 1 byte for 1, 1 byte for 0
+    let ps_len = N - 70;
+    for i in 68..N {
+        if i as u32 < 68 + ps_len as u32 {
+            // PS padding
+            assert(padded_sha384_hash[i] == 255);
+        } else if i as u32 == 68 + ps_len as u32 {
+            // Pad 0x01
+            assert(padded_sha384_hash[i] == 1);
+        } else if i as u32 == 69 + ps_len as u32 {
+            // 0x00
+            assert(padded_sha384_hash[i] == 0);
+        } else {
+            // Padded with 0 until MAX_BYTES
+            assert(padded_sha384_hash[i] == 0);
+        }
+    }
+
+    true
+}
+
+/**
+ * @brief Compare a recovered byte hash from an RSA signature using SHA-512 to the original message hash
+ **/
+fn compare_signature_sha512<let N: u32>(padded_sha512_hash: [u8; N], msg_hash: [u8; 64]) -> bool {
+    // Get length of sig (e.g. 1048 = 128 bytes, 2048 = 256 bytes)
+    for i in 0..64 {
+        // Padded hash is reversed
+        assert(padded_sha512_hash[63 - i] == msg_hash[i]);
+    }
+
+    // SHA-512 ASN.1 DER identifier
+    let hash_prefix: [u8; 19] =
+        [64, 4, 0, 5, 3, 2, 4, 3, 101, 1, 72, 134, 96, 9, 6, 13, 48, 81, 48];
+
+    for i in 64..83 {
+        assert(hash_prefix[i - 64] == padded_sha512_hash[i]);
+    }
+
+    assert(padded_sha512_hash[83] == 0);
+
+    // Sub 64 bytes for hash, 19 bytes for prefix, 1 byte for 0, 1 byte for 1, 1 byte for 0
+    let ps_len = N - 86;
+    for i in 84..N {
+        if i as u32 < 84 + ps_len as u32 {
+            // PS padding
+            assert(padded_sha512_hash[i] == 255);
+        } else if i as u32 == 84 + ps_len as u32 {
+            // Pad 0x01
+            assert(padded_sha512_hash[i] == 1);
+        } else if i as u32 == 85 + ps_len as u32 {
+            // 0x00
+            assert(padded_sha512_hash[i] == 0);
+        } else {
+            // Padded with 0 until MAX_BYTES
+            assert(padded_sha512_hash[i] == 0);
+        }
+    }
+
+    true
+}
+
+/**
+ * @brief Verify an RSA signature using the PKCS#1 v1.5 padding scheme with SHA-256
+ *
+ * @param msg_hash The SHA-256 hash of the message being verified
+ * @param sig The RSA signature
+ * @param exponent The public exponent (either 3 or 65537)
+ * @return True if the signature is valid, false otherwise
+ */
+pub fn verify_sha256_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
+    msg_hash: [u8; 32],
+    sig: RuntimeBigNum<NumLimbs, ModBits>,
+    exponent: u32,
+) -> bool {
+    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
+    let mut exponentiated = sig * sig; // sig^2
+    if exponent == 65537 {
+        for _ in 0..15 {
+            exponentiated = exponentiated * exponentiated;
+        }
+    }
+    // otherwise, e = 3 = 11
+    exponentiated = exponentiated * sig; // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
+    let mut padded_sha256_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
+    compare_signature_sha256(padded_sha256_hash_bytes, msg_hash)
+}
+
+/**
+ * @brief Verify an RSA signature using the PKCS#1 v1.5 padding scheme with SHA-384
+ *
+ * @param msg_hash The SHA-384 hash of the message being verified
+ * @param sig The RSA signature
+ * @param exponent The public exponent (either 3 or 65537)
+ * @return True if the signature is valid, false otherwise
+ */
+pub fn verify_sha384_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
+    msg_hash: [u8; 48],
+    sig: RuntimeBigNum<NumLimbs, ModBits>,
+    exponent: u32,
+) -> bool {
+    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
+    let mut exponentiated = sig * sig; // sig^2
+    if exponent == 65537 {
+        for _ in 0..15 {
+            exponentiated = exponentiated * exponentiated;
+        }
+    }
+    // otherwise, e = 3 = 11
+    exponentiated = exponentiated * sig; // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
+    let mut padded_sha384_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
+    compare_signature_sha384(padded_sha384_hash_bytes, msg_hash)
+}
+
+/**
+ * @brief Verify an RSA signature using the PKCS#1 v1.5 padding scheme with SHA-512
+ *
+ * @param msg_hash The SHA-512 hash of the message being verified
+ * @param sig The RSA signature
+ * @param exponent The public exponent (either 3 or 65537)
+ * @return True if the signature is valid, false otherwise
+ */
+pub fn verify_sha512_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
+    msg_hash: [u8; 64],
+    sig: RuntimeBigNum<NumLimbs, ModBits>,
+    exponent: u32,
+) -> bool {
+    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
+    let mut exponentiated = sig * sig; // sig^2
+    if exponent == 65537 {
+        for _ in 0..15 {
+            exponentiated = exponentiated * exponentiated;
+        }
+    }
+    // otherwise, e = 3 = 11
+    exponentiated = exponentiated * sig; // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
+    let mut padded_sha512_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
+    compare_signature_sha512(padded_sha512_hash_bytes, msg_hash)
 }
 
 /**
@@ -210,44 +456,207 @@ pub fn verify_sha256_pss<let NumLimbs: u32, let ModBits: u32>(
     }
 
     // Compute H'
-    let h_prime = dep::std::hash::sha256(m_prime);
+    let h_prime = sha256::sha256_var(m_prime, 72);
 
     // Compare H and H'
     h == h_prime
 }
 
 /**
- * @brief Verify an RSA signature generated via the pkcs1v15 signature scheme.
- * @details The fourth function parameter is required to define the value of `NBytes`
- *          when converting a BigNum into a byte array, the number of bytes is required and currently cannot be inferred.
- *          Once numeric generics can be derived by applying operations to other numeric generics the need for this will go away.
- *
- * @note The exponent `e` can be either 65537 or 3 (i.e. the most common values in use for RSA)
- * Rough cost: 2,048 bit RSA: 26,888 gates per verification
- *             1,024 bit RSA: 11,983 gates per verification
- * A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
- **/
-pub fn verify_sha256_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
-    msg_hash: [u8; 32],
+    * @brief Verify an RSA signature generated via the PSS signature scheme using SHA-384.
+    *
+    * @note The exponent `e` can be either 65537 or 3 (i.e. the most common values in use for RSA)
+    **/
+pub fn verify_sha384_pss<let NumLimbs: u32, let ModBits: u32>(
+    msg_hash: [u8; 48],
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> bool {
     assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
-    let mut exponentiated = sig * sig; // sig^2
+    let mut exponentiated = sig * sig;
     if exponent == 65537 {
+        // Exponentiate the signature assuming e = 65537
         for _ in 0..15 {
             exponentiated = exponentiated * exponentiated;
         }
     }
-    // otherwise, e = 3 = 11
-    exponentiated = exponentiated * sig; // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
-    let mut padded_sha256_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
-    compare_signature_sha256(padded_sha256_hash_bytes, msg_hash)
+    // Otherwise, e = 3 = 11
+    exponentiated = exponentiated * sig;
+
+    // Convert the exponentiated signature to a byte array and reverse it to
+    // get it in big endian order, which is much easier to work with for
+    // the rest of the verification process
+    let em: [u8; (ModBits + 7) / 8] = reverse_array(exponentiated.to_le_bytes());
+
+    // The modulus size in bits minus 1
+    let em_bits = ModBits - 1;
+    // The actual length of the encoded message without any of the leftmost 0s
+    let em_len = (em_bits + 7) / 8;
+    // The length of the modulus in bytes
+    let key_len = (ModBits + 7) / 8;
+    let h_len = 48; // SHA-384 produces 48-byte hashes
+    let s_len = 48; // Salt length is typically equal to hash length
+
+    // Check if emLen < hLen + sLen + 2
+    assert(em_len >= h_len + s_len + 2);
+
+    // Check if eM ends with 0xBC
+    assert_eq(em[em.len() - 1], 0xBC);
+
+    let db_mask_len = em_len - h_len - 1;
+    // In some rare cases, em_len is not equal to key_len (e.g. 1025 bit RSA)
+    // In this case, we'll have a leading zero byte in em that we need to ignore
+    let offset = key_len - em_len;
+
+    // The array slice sizes will be different for SHA-384 compared to SHA-256
+    let masked_db: [u8; (ModBits + 7) / 8 - 49] = get_array_slice(em, offset, db_mask_len + offset);
+    let h = get_array_slice(em, db_mask_len + offset, em.len() - 1);
+
+    // Make sure the 8 * em_len - em_bits leftmost bits are 0
+    let bits_to_mask = 8 - (8 * em_len - em_bits);
+    let mask_value = pow(2, bits_to_mask as u32);
+    assert_eq(masked_db[0] as u32 / mask_value, 0);
+
+    // Generate dbMask using MGF1 with SHA-384
+    let db_mask: [u8; (ModBits + 7) / 8 - 49] = mgf1_sha384(h);
+
+    // Compute DB = maskedDB xor dbMask
+    let mut db = [0 as u8; (ModBits + 7) / 8 - 49];
+    for i in 0..db_mask_len {
+        db[i] = masked_db[i] ^ db_mask[i];
+    }
+
+    // Set leftmost byte of DB to 0
+    db[0] = 0;
+
+    // Check if the leftmost octets of DB are zero
+    for i in 0..(em_len - h_len - s_len - 2) {
+        assert_eq(db[i], 0);
+    }
+
+    // Check if the octet at position emLen - hLen - sLen - 2 is 1
+    assert_eq(db[em_len - h_len - s_len - 2], 1);
+
+    // Extract salt
+    let salt: [u8; 48] = get_array_slice(db, db_mask_len - s_len, db_mask_len);
+
+    // Construct M'
+    // M' = (0x)00 00 00 00 00 00 00 00 || msg_hash || salt
+    let mut m_prime = [0 as u8; 104]; // 8 + h_len + s_len = 8 + 48 + 48 = 104
+    for i in 8..56 {
+        m_prime[i] = msg_hash[i - 8];
+    }
+    for i in 56..104 {
+        m_prime[i] = salt[i - 56];
+    }
+
+    // Compute H' using SHA-384
+    let m_prime_vec = BoundedVec::from_parts(m_prime, 104);
+    let h_prime = sha384::sha384_var(m_prime_vec);
+
+    // Compare H and H'
+    h == h_prime
+}
+
+/**
+    * @brief Verify an RSA signature generated via the PSS signature scheme using SHA-512.
+    *
+    * @note The exponent `e` can be either 65537 or 3 (i.e. the most common values in use for RSA)
+    **/
+pub fn verify_sha512_pss<let NumLimbs: u32, let ModBits: u32>(
+    msg_hash: [u8; 64],
+    sig: RuntimeBigNum<NumLimbs, ModBits>,
+    exponent: u32,
+) -> bool {
+    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
+    let mut exponentiated = sig * sig;
+    if exponent == 65537 {
+        // Exponentiate the signature assuming e = 65537
+        for _ in 0..15 {
+            exponentiated = exponentiated * exponentiated;
+        }
+    }
+    // Otherwise, e = 3 = 11
+    exponentiated = exponentiated * sig;
+
+    // Convert the exponentiated signature to a byte array and reverse it to
+    // get it in big endian order, which is much easier to work with for
+    // the rest of the verification process
+    let em: [u8; (ModBits + 7) / 8] = reverse_array(exponentiated.to_le_bytes());
+
+    // The modulus size in bits minus 1
+    let em_bits = ModBits - 1;
+    // The actual length of the encoded message without any of the leftmost 0s
+    let em_len = (em_bits + 7) / 8;
+    // The length of the modulus in bytes
+    let key_len = (ModBits + 7) / 8;
+    let h_len = 64; // SHA-512 produces 64-byte hashes
+    let s_len = 64; // Salt length is typically equal to hash length
+
+    // Check if emLen < hLen + sLen + 2
+    assert(em_len >= h_len + s_len + 2);
+
+    // Check if eM ends with 0xBC
+    assert_eq(em[em.len() - 1], 0xBC);
+
+    let db_mask_len = em_len - h_len - 1;
+    // In some rare cases, em_len is not equal to key_len (e.g. 1025 bit RSA)
+    // In this case, we'll have a leading zero byte in em that we need to ignore
+    let offset = key_len - em_len;
+
+    // The array slice sizes will be different for SHA-512 compared to SHA-256
+    let masked_db: [u8; (ModBits + 7) / 8 - 65] = get_array_slice(em, offset, db_mask_len + offset);
+    let h = get_array_slice(em, db_mask_len + offset, em.len() - 1);
+
+    // Make sure the 8 * em_len - em_bits leftmost bits are 0
+    let bits_to_mask = 8 - (8 * em_len - em_bits);
+    let mask_value = pow(2, bits_to_mask as u32);
+    assert_eq(masked_db[0] as u32 / mask_value, 0);
+
+    // Generate dbMask using MGF1 with SHA-512
+    let db_mask: [u8; (ModBits + 7) / 8 - 65] = mgf1_sha512(h);
+
+    // Compute DB = maskedDB xor dbMask
+    let mut db = [0 as u8; (ModBits + 7) / 8 - 65];
+    for i in 0..db_mask_len {
+        db[i] = masked_db[i] ^ db_mask[i];
+    }
+
+    // Set leftmost byte of DB to 0
+    db[0] = 0;
+
+    // Check if the leftmost octets of DB are zero
+    for i in 0..(em_len - h_len - s_len - 2) {
+        assert_eq(db[i], 0);
+    }
+
+    // Check if the octet at position emLen - hLen - sLen - 2 is 1
+    assert_eq(db[em_len - h_len - s_len - 2], 1);
+
+    // Extract salt
+    let salt: [u8; 64] = get_array_slice(db, db_mask_len - s_len, db_mask_len);
+
+    // Construct M'
+    // M' = (0x)00 00 00 00 00 00 00 00 || msg_hash || salt
+    let mut m_prime = [0 as u8; 136]; // 8 + h_len + s_len = 8 + 64 + 64 = 136
+    for i in 8..72 {
+        m_prime[i] = msg_hash[i - 8];
+    }
+    for i in 72..136 {
+        m_prime[i] = salt[i - 72];
+    }
+
+    // Compute H' using SHA-512
+    let m_prime_vec = BoundedVec::from_parts(m_prime, 136);
+    let h_prime = sha512::sha512_var(m_prime_vec);
+
+    // Compare H and H'
+    h == h_prime
 }
 
 #[test]
 fn test_verify_sha256_pkcs1v15_1024() {
-    let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world! test#123".as_bytes());
+    let sha256_hash: [u8; 32] = sha256::sha256_var("hello world! test#123".as_bytes(), 21);
     let params: Params1024 = BigNumParams::new(
         false,
         [
@@ -294,7 +703,7 @@ fn test_verify_sha256_pkcs1v15_1024() {
 
 #[test]
 fn test_verify_sha256_pkcs1v15_2048() {
-    let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+    let sha256_hash: [u8; 32] = sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
 
     let params: Params2048 = BigNumParams::new(
         false,
@@ -367,8 +776,162 @@ fn test_verify_sha256_pkcs1v15_2048() {
 }
 
 #[test]
+fn test_verify_sha384_pkcs1v15_2048() {
+    let sha384_hash: [u8; 48] = sha384::sha384_var(BoundedVec::from_parts(
+        "Hello World! This is Noir-RSA".as_bytes(),
+        29,
+    ));
+
+    let params: Params2048 = BigNumParams::new(
+        false,
+        [
+            0x1dccbc1b553aef560cd665aa2ca411,
+            0xdf1b70d8f0ff39013065a5a886490f,
+            0xc3952220c2f6ba45b86fd1842f6db5,
+            0x13403323f2e86127e7d30ca5c3741f,
+            0xdd9593e1b80868ee660cff6aed224d,
+            0xa768ff67951f621cf220c3f11fb7d0,
+            0x827a30c8fc6da6d9e0002ccbab7354,
+            0xd4f4b3326c1822490ba84bf7d8f2ff,
+            0xbc1aed9983525cf9795c5ee886efbe,
+            0x95eca388e0ef68d9e1b51bfdb3f38b,
+            0x5f250161202b7d91724180734cd057,
+            0x5f6a6e4b2adf9db128af321e90bc61,
+            0x2b395ebbeaaf0c6c40a8e7ab2f041b,
+            0x8fea1754c39077bbc232d8380c4eac,
+            0xa113212c3d6ba516cdf08b1c0c0cae,
+            0x9ba6c1d51332cd846f88cfe28dabb,
+            0x57a8d8bfcb8839f3ef85c7ee2dc2e0,
+            0xb4,
+        ],
+        [
+            0xeb993de4326322c7d2e7979b705653,
+            0x1d611f18aa83085ef385333ec454c3,
+            0xb7a3bee73153dae2577781e9a435b0,
+            0xee599bc9d964a749c73673b0559c2c,
+            0x35c1adbbcbfe860f721aa7a0fc3f13,
+            0xa8c28cff73d6ab769ff07f77246062,
+            0xa6263efec60ed7d395f486a0a96b2d,
+            0xa6da86e3c3abd7bec42b6fab8927bf,
+            0xc5a27d894e67e310bc4490762e53dd,
+            0xea29c3c6430885ae7b68d1399dd42e,
+            0xb5a82288241107dcc02e4d04cc0fd,
+            0xf9dbe42935c2111913f05933346bb8,
+            0xc82f5eca04e0b6ab27cdbc55ed1cf6,
+            0xbc6d3e01593e9d1c9399245a306ccd,
+            0xf5da9e23e54b7ace54fc14e9b8fe89,
+            0xc087aabdf746e1a12a8792cf7ac5d1,
+            0x5c825b2c8353558dd371d57b1d31af,
+            0x16b6,
+        ],
+    );
+
+    let signature: RBN2048 = RuntimeBigNum {
+        params,
+        limbs: [
+            0x0d643395f61610f78e0965ff28b34a,
+            0x991a18b16cd776f8ba0dc7d3a2c0ac,
+            0x59ad92fdc6573338573a5ec3a8ac1f,
+            0x39fa3c545c220904560f89449e0cb6,
+            0x77c0492bb5f8faeab6484258164fef,
+            0x32f66a824fc81c4bc3a10228c9d875,
+            0xaf5a933d03c5c769af3e1c43112418,
+            0xe4b3c71e29d230dbcd784dfd344cc6,
+            0x08f5fd6f3b0782eaae154fe56fbe0f,
+            0x9b785970ee35b2cd656cd9f098565c,
+            0xc6c649021334fff3d4ba072255eb0e,
+            0x1fb7d5c84e2fc4e975ea5793a92fc9,
+            0xcbb718f2f6c780b4f6e3a17575b89f,
+            0x04f7eb7174814ff492727916397bb8,
+            0x77790f451d53ce4d4229791f142d38,
+            0xd9ab6403501d48c29b3abbad760d43,
+            0x20d90ee7975dcbd1761fa7f6487391,
+            0x17,
+        ],
+    };
+    assert(verify_sha384_pkcs1v15(sha384_hash, signature, 65537));
+}
+
+#[test]
+fn test_verify_sha512_pkcs1v15_2048() {
+    let sha512_hash: [u8; 64] = sha512::sha512_var(BoundedVec::from_parts(
+        "Hello World! This is Noir-RSA".as_bytes(),
+        29,
+    ));
+
+    let params: Params2048 = BigNumParams::new(
+        false,
+        [
+            0x56acc9475dd0568166f6d519d2b123,
+            0x4388e4291f2a16d58441e4c966d869,
+            0x3b6cbbf6524f2e12e274d96a598cf3,
+            0xcb7b28845e13e53fc8827fadcbf5c2,
+            0xc2f20ecad4360634ca81a3f2700df9,
+            0x71b5ed85f3cc58e9820fa9cdabf2b4,
+            0x8e15d0237c7dbee5369ccbf8f6e25e,
+            0x280d4771bcddaebaa691b4870d4a92,
+            0x3f8ab4c278a35f45149814c95c1c6a,
+            0x4b88bb3a4f16adaa8a9ffa781086ad,
+            0xb4e8dad6bc3fd7d666683e872832e1,
+            0x3135b2958becadcb9e25ec25e55b23,
+            0x405ef523d210399f9def6302a36221,
+            0xb9aaf3a3c5b2e3f4f86393bde7b852,
+            0x5f66a3d278b5759b92269481eb94ca,
+            0xb0ae491acfb3d0a8a46a92b7adffb7,
+            0xa61f0e1720a3cc4594121de7aedf34,
+            0xc0,
+        ],
+        [
+            0xa1818833c46a2c4799148d9f1264d9,
+            0x91008bc32d17f31c4f28b53cf3b9a,
+            0xbf512971ab01254af711f37837279b,
+            0x4f98e0725dbc7d52fba2f5d5482d5,
+            0xc06343b59716c402d33ae0d15ce9b,
+            0x96e236079ec038a21029aba4ff7ffb,
+            0x76e91c4ee8870b1d1c06b73a00f0f9,
+            0xc5018d4394283930ab64cc401b3809,
+            0xc8b4f3f863b01b0fe223822f163552,
+            0x6a94ec6a63708552ac0ab6a824f380,
+            0xc3cf47d1d72b08284f9c04e265a5bc,
+            0xa9d863c6820f2ec1cd35de9327b153,
+            0x85983ec02cffd866801e790bbfa7d2,
+            0x5ee89f7c98ece0aaf4150b6c5b6abe,
+            0x7255ef31994f3cb4b731d0bbf76c57,
+            0x3aba2e537e9003f447c62153c3dcd7,
+            0xf005726db837e60cff0feaac8d326d,
+            0x1542,
+        ],
+    );
+
+    let signature: RBN2048 = RuntimeBigNum {
+        params,
+        limbs: [
+            0x8c1ac22b4f25479bd4d63adc5647a5,
+            0xc226d235d17e3ce2d6303804edd317,
+            0x75992147cd0883367aac32c28927e2,
+            0x7f131d0a5dc76ac9a3982bc3430a66,
+            0x1e5c5471a794bede59e42c5125df77,
+            0x7d4d8bffa69b08eb5a9338c96eb042,
+            0x44bc5745bdb2ed1944e61939c9b325,
+            0xa9c536593f93201b1493257bfceedb,
+            0x9f00b9f27e424f9724c1486fb54314,
+            0xeae7e1250521e254ee2d31f94002f9,
+            0x9ee4db7dbe46139670393a1250fa79,
+            0x014039fcd5bcfa3db273bf7188b3ce,
+            0x4967a88c2ddaf359c3c813cfa3ccc6,
+            0x9c3f74383a8c3326b47401d5815c45,
+            0x2f666d5fbe8464dcfaf569bffa0248,
+            0xfeccacb7e9e0e44320651e58344e8e,
+            0x8942c708df7e40a175d44fee7cf5ec,
+            0x4c,
+        ],
+    };
+    assert(verify_sha512_pkcs1v15(sha512_hash, signature, 65537));
+}
+
+#[test]
 fn test_verify_sha256_pkcs1v15_2048_exponent_3() {
-    let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world".as_bytes());
+    let sha256_hash: [u8; 32] = sha256::sha256_var("hello world".as_bytes(), 11);
 
     let params: Params2048 = BigNumParams::new(
         false,
@@ -443,7 +1006,7 @@ fn test_verify_sha256_pkcs1v15_2048_exponent_3() {
 
 #[test]
 fn test_mgf1_sha256() {
-    let seed: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+    let seed: [u8; 32] = sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
     let expected_mask: [u8; 32] = [
         106, 93, 232, 46, 236, 203, 51, 228, 103, 104, 145, 29, 197, 74, 26, 194, 135, 200, 40, 232,
         179, 172, 220, 135, 51, 185, 209, 35, 194, 131, 176, 190,
@@ -454,7 +1017,7 @@ fn test_mgf1_sha256() {
 
 #[test]
 fn test_verify_sha256_pss_2048() {
-    let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+    let sha256_hash: [u8; 32] = sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
     let params: Params2048 = BigNumParams::new(
         false,
         [
@@ -525,8 +1088,160 @@ fn test_verify_sha256_pss_2048() {
 }
 
 #[test]
+fn test_verify_sha384_pss_2048() {
+    let sha384_hash: [u8; 48] = sha384::sha384_var(BoundedVec::from_parts(
+        "Hello World! This is Noir-RSA".as_bytes(),
+        29,
+    ));
+    let params: Params2048 = BigNumParams::new(
+        false,
+        [
+            0xc3034c17b5578d9c029b22158a8e45,
+            0xa84c80b43a68c9eb7cde67f1f60e07,
+            0xa8d82a4aef2cd733a9fdf43439ffbb,
+            0xa1b9aae31832c2815b81f0db70962e,
+            0xcfcbc51338d691443e702bd18354a7,
+            0xaa2c5f465a247efc9d97fb052579b8,
+            0x571f3c233fa322a933a4cfc0c4b213,
+            0x3280f1f7238a3416c5e1140077537a,
+            0x8685f03e3076c1bb62550cb363ae08,
+            0x55ebdcb84073ad2dfd3553c5e2d21a,
+            0x1e5a0a662b44f5250377abcd1069e6,
+            0x178357493184215e38603004f6c9f3,
+            0x75cb8889b33c6b78bab0a378453376,
+            0x4f5f7baa56492d5ac52c1bf7b998b,
+            0x16cf48a7c416bbf67657a263376e22,
+            0x1d8ab41c7021ebcb15da705dab5343,
+            0xc5e43d48377059df0aa5d7e5441586,
+            0xc7,
+        ],
+        [
+            0x721a52a87ca82263e96fd6d2bf3417,
+            0x74bfd742af70020df01f6cae960793,
+            0x1091edcad411cdbfc254bbb2ab2906,
+            0x9d1a2951a8e50de9c90b803c3d4931,
+            0x506ad1760d06b52708ccc0ed9fe629,
+            0x11b96266505a62523f9cfa1101a9c8,
+            0xbe5243b0f30ee090c4181e19f45f1a,
+            0xa2a56edaec8f9fe12d4d07d725931e,
+            0x50723b780f7ef18393031ced4f1489,
+            0x1ef7d8dc5b567db0b1a65b745625f2,
+            0xf9f37b5efea9a93029d7d5dda26bc2,
+            0x759247cff5570cb9075ae0e8b5cfee,
+            0xfb2e6c00b4ce0feedc40f3633d354e,
+            0xc9051ad4f912e7a5753e614d892320,
+            0x3cf78d852f5f76bc267b0ebcf13c39,
+            0x7b3cb2df2619a3020f2080dd555657,
+            0xd649e6032585f42250ac6c95111c09,
+            0x1480,
+        ],
+    );
+    let signature: RBN2048 = RuntimeBigNum {
+        params,
+        limbs: [
+            0x06d24f9dbd859780c7684e7733ebb1,
+            0x3acb7e4bd7c9f42a5f9649e1fef5c4,
+            0x67878f2493de5cb48ae107df08dbf1,
+            0xf268bc940d64e42b8719216fef188e,
+            0x2c4701120db41532e6d195ba1f8faa,
+            0x03d3b537eefd6f0c99fbb7c1f359d9,
+            0x35b732ca45b03bb17b1f3564f18464,
+            0x468584d7dac0a4ba51032e2a5f95e2,
+            0xe10042eb30d1662517aed3b89e1154,
+            0x0e5743acb366c6251627e64f751256,
+            0xb06e6af3e06ed5c656e66aa0295f63,
+            0x67378aabfe17e33e305825eb4f6c5a,
+            0x8cd4c7aa81b660325dba4b0d899a9c,
+            0x40c83a9c74f99c026aa845fa222b69,
+            0xd52f8e19032a33a1d9a01063fff8f9,
+            0x7dc36972054edf46bbfe918711e693,
+            0xb035fca3baf4329ff5d588baf7b034,
+            0x1c,
+        ],
+    };
+
+    assert(verify_sha384_pss(sha384_hash, signature, 65537));
+}
+
+#[test]
+fn test_verify_sha512_pss_2048() {
+    let sha512_hash: [u8; 64] = sha512::sha512_var(BoundedVec::from_parts(
+        "Hello World! This is Noir-RSA".as_bytes(),
+        29,
+    ));
+    let params: Params2048 = BigNumParams::new(
+        false,
+        [
+            0x928a173c3947c058b084e258b8a4c1,
+            0x5f1179c22cfacb440464695cfa393e,
+            0xc409e532b3077ce4d90e66e913f125,
+            0x29e8696374f86380ff45d0f29a98d5,
+            0xf931d155d89d3753ee931433a8e2fd,
+            0xfc3d1c2a999f0112f5c5416c2e0428,
+            0x4d21692b210bec2ab8e1b52fe78e66,
+            0x9df364fad350d314b146e84f114203,
+            0x8511a74031596831dda8ac9d18dcf7,
+            0xab5f9ad71b33284aae738988284229,
+            0x3332aa31681f69a5f470caadad7469,
+            0xf1fcad281e0fea144e1f4208d38e38,
+            0xe83d3b0afb20bc39814ea22df000ef,
+            0x3d9244664808f54fc4f0702adc9399,
+            0xc087b5dc693953e6371b9c7c175a21,
+            0xd5910d0d4232e8f92148482a72baec,
+            0x44e57b58ec4e75250116ce2f1abf3b,
+            0xd2,
+        ],
+        [
+            0x74b3f4c907125a6150549b8b5a387e,
+            0x9c2ecc9981d5fc27f5a6a7b4f23756,
+            0x57ee194ec44b4a44df198809f8d673,
+            0x7ffa9a1ec7d9a9b915e1abc75c493f,
+            0xde339596c27c993135a7ee132cf774,
+            0xfdb788951d3777aeea6afee171b569,
+            0x8dda93126970270ed42ae605e9824f,
+            0x3fa6e07b4429f0ee8370c988553ee3,
+            0x26d95e43ed1e1960a316eebf6b3b0b,
+            0xfd155b9025d16ecdbdac73725d9a89,
+            0x2f5a47107ec03b05f5a10fba4fa1df,
+            0x61a45285c5dc3355741713d6d71a24,
+            0x8644f1f46cecd803e531110da3bd5f,
+            0xaf989d56c5412bee6598af25829723,
+            0x52f7827f7aee453f9c3eb9753fbe4b,
+            0x9f38d6f5f1a3ff0d40c601d799dbb0,
+            0xd401bd1620fdd206413a8977de6375,
+            0x137a,
+        ],
+    );
+    let signature: RBN2048 = RuntimeBigNum {
+        params,
+        limbs: [
+            0x2058f7115f339e55a93f8dcefe81b9,
+            0x38a20cdbfc439a1fea423c119f2879,
+            0x7ac4e03a5fa662754e6e21a78984d4,
+            0x69d714829d29b235d588476152b5af,
+            0xce3db2102990c27bb66bc32da8dec4,
+            0xb4914f6f0e73718b5f1e422fac6ddf,
+            0x7d812b554c81ccb7932d1e78c6e002,
+            0x438fe60d9e0912328374513ab91b69,
+            0x56abaf2b8d9a6dcb9201586d2f0d0a,
+            0x4151c524481066bd81b4cd17829481,
+            0x7c63b445e245d09ca91057032ad22b,
+            0x9f242d5a655035a028a68d337ae40d,
+            0xb5f91b99b495862044bc7122913806,
+            0xc123aa56dff5b23d7d8ad097748efb,
+            0x6892e3a32a7b6963d97b3bdd81b91d,
+            0xcd7aa9e3e77f68f0ed195bff92a162,
+            0x583a32fd5a399f3acd867dd7d6a1b6,
+            0x7f,
+        ],
+    };
+
+    assert(verify_sha512_pss(sha512_hash, signature, 65537));
+}
+
+#[test]
 fn test_verify_sha256_pss_4096() {
-    let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+    let sha256_hash: [u8; 32] = sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
     let params: Params4096 = BigNumParams::new(
         false,
         [
@@ -650,7 +1365,7 @@ fn test_verify_sha256_pss_4096() {
 
 #[test]
 fn test_verify_sha256_pss_2048_exponent_3() {
-    let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+    let sha256_hash: [u8; 32] = sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
     let params: Params2048 = BigNumParams::new(
         false,
         [
@@ -717,13 +1432,14 @@ fn test_verify_sha256_pss_2048_exponent_3() {
             0x9b,
         ],
     };
+
     assert(verify_sha256_pss(sha256_hash, signature, 3));
 }
 
 // Test an unusual key length that is not a multiple of 8
 /*#[test]
 fn test_verify_sha256_pss_1964() {
-    let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+    let sha256_hash: [u8; 32] = sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
     let params: Params1964 = BigNumParams::new(
         false,
         [
@@ -794,7 +1510,7 @@ fn test_verify_sha256_pss_1964() {
 // Test an edge case where the key length in bytes is greater than the encoded message length
 #[test]
 fn test_verify_sha256_pss_1025() {
-    let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+    let sha256_hash: [u8; 32] = sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
     let params: Params1025 = BigNumParams::new(
         false,
         [
