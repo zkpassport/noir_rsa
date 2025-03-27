@@ -1,3 +1,6 @@
-/target
+target
+export
+gates_report.json
+
 **/.DS_Store
 .vscode

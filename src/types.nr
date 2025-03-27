@@ -1,5 +1,5 @@
-use dep::bignum::RuntimeBigNum;
-use dep::bignum::params::BigNumParams;
+use bignum::params::BigNumParams;
+use bignum::RuntimeBigNum;
 
 pub type Params1024 = BigNumParams<9, 1024>;
 pub type Params1025 = BigNumParams<9, 1025>;
