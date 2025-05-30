@@ -9,6 +9,7 @@ use toml::Value;
 use rsa::signature::{SignatureEncoding, Signer};
 use rsa::traits::PublicKeyParts;
 use sha2::{Digest, Sha256, Sha384, Sha512};
+use sha1::Sha1;
 
 use clap::{App, Arg};
 
