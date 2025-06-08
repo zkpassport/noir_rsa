@@ -36,7 +36,7 @@ In your _Nargo.toml_ file, add the version of this library you would like to ins
 
 ```
 [dependencies]
-noir_rsa = { tag = "v0.8.0", git = "https://github.com/zkpassport/noir_rsa" }
+noir_rsa = { tag = "v0.8.1", git = "https://github.com/zkpassport/noir_rsa" }
 ```
 
 ## Usage
