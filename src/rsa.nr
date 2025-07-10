@@ -368,6 +368,30 @@ fn compare_signature_sha512<let N: u32>(padded_sha512_hash: [u8; N], msg_hash: [
 }
 
 /**
+ * @brief Exponentiate a signature by a given exponent
+ * @details This function handles the exponentiation of a signature by a given exponent.
+ * It supports the exponents 3 and 65537.
+ * @param sig The signature to exponentiate
+ * @param exponent The exponent to use
+ * @return The exponentiated signature
+ */
+fn exponentiate_signature<let NumLimbs: u32, let ModBits: u32>(
+    sig: RuntimeBigNum<NumLimbs, ModBits>,
+    exponent: u32,
+) -> RuntimeBigNum<NumLimbs, ModBits> {
+    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
+    let mut exponentiated = sig * sig; // sig^2
+    if (exponent == 65537) {
+        for _ in 0..15 {
+            exponentiated = exponentiated * exponentiated;
+        }
+    }
+    // otherwise, e = 3 = 11
+    exponentiated = exponentiated * sig; // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
+    exponentiated
+}
+
+/**
  * @brief Verify an RSA signature using the PKCS#1 v1.5 padding scheme with SHA-1
  *
  * @param msg_hash The SHA-1 hash of the message being verified
@@ -380,15 +404,7 @@ pub fn verify_sha1_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> bool {
-    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
-    let mut exponentiated = sig * sig; // sig^2
-    if exponent == 65537 {
-        for _ in 0..15 {
-            exponentiated = exponentiated * exponentiated;
-        }
-    }
-    // otherwise, e = 3 = 11
-    exponentiated = exponentiated * sig; // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
+    let exponentiated = exponentiate_signature(sig, exponent);
     let mut padded_sha1_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
     compare_signature_sha1(padded_sha1_hash_bytes, msg_hash)
 }
@@ -405,15 +421,7 @@ pub fn verify_sha256_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> bool {
-    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
-    let mut exponentiated = sig * sig; // sig^2
-    if exponent == 65537 {
-        for _ in 0..15 {
-            exponentiated = exponentiated * exponentiated;
-        }
-    }
-    // otherwise, e = 3 = 11
-    exponentiated = exponentiated * sig; // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
+    let exponentiated = exponentiate_signature(sig, exponent);
     let mut padded_sha256_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
     compare_signature_sha256(padded_sha256_hash_bytes, msg_hash)
 }
@@ -431,15 +439,7 @@ pub fn verify_sha384_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> bool {
-    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
-    let mut exponentiated = sig * sig; // sig^2
-    if exponent == 65537 {
-        for _ in 0..15 {
-            exponentiated = exponentiated * exponentiated;
-        }
-    }
-    // otherwise, e = 3 = 11
-    exponentiated = exponentiated * sig; // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
+    let exponentiated = exponentiate_signature(sig, exponent);
     let mut padded_sha384_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
     compare_signature_sha384(padded_sha384_hash_bytes, msg_hash)
 }
@@ -457,15 +457,7 @@ pub fn verify_sha512_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> bool {
-    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
-    let mut exponentiated = sig * sig; // sig^2
-    if exponent == 65537 {
-        for _ in 0..15 {
-            exponentiated = exponentiated * exponentiated;
-        }
-    }
-    // otherwise, e = 3 = 11
-    exponentiated = exponentiated * sig; // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
+    let exponentiated = exponentiate_signature(sig, exponent);
     let mut padded_sha512_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
     compare_signature_sha512(padded_sha512_hash_bytes, msg_hash)
 }
@@ -480,16 +472,7 @@ pub fn verify_sha1_pss<let NumLimbs: u32, let ModBits: u32>(
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> bool {
-    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
-    let mut exponentiated = sig * sig;
-    if exponent == 65537 {
-        // Exponentiate the signature assuming e = 65537
-        for _ in 0..15 {
-            exponentiated = exponentiated * exponentiated;
-        }
-    }
-    // Otherwise, e = 3 = 11
-    exponentiated = exponentiated * sig;
+    let exponentiated = exponentiate_signature(sig, exponent);
 
     // Convert the exponentiated signature to a byte array and reverse it to
     // get it in big endian order, which is much easier to work with for
@@ -579,16 +562,8 @@ pub fn verify_sha256_pss<let NumLimbs: u32, let ModBits: u32>(
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> bool {
-    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
-    let mut exponentiated = sig * sig;
-    if exponent == 65537 {
-        // Exponentiate the signature assuming e = 65537
-        for _ in 0..15 {
-            exponentiated = exponentiated * exponentiated;
-        }
-    }
-    // Otherwise, e = 3 = 11
-    exponentiated = exponentiated * sig;
+    let exponentiated = exponentiate_signature(sig, exponent);
+
     // Convert the exponentiated signature to a byte array and reverse it to
     // get it in big endian order, which is much easier to work with for
     // the rest of the verification process
@@ -676,16 +651,7 @@ pub fn verify_sha384_pss<let NumLimbs: u32, let ModBits: u32>(
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> bool {
-    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
-    let mut exponentiated = sig * sig;
-    if exponent == 65537 {
-        // Exponentiate the signature assuming e = 65537
-        for _ in 0..15 {
-            exponentiated = exponentiated * exponentiated;
-        }
-    }
-    // Otherwise, e = 3 = 11
-    exponentiated = exponentiated * sig;
+    let exponentiated = exponentiate_signature(sig, exponent);
 
     // Convert the exponentiated signature to a byte array and reverse it to
     // get it in big endian order, which is much easier to work with for
@@ -772,16 +738,7 @@ pub fn verify_sha512_pss<let NumLimbs: u32, let ModBits: u32>(
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> bool {
-    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
-    let mut exponentiated = sig * sig;
-    if exponent == 65537 {
-        // Exponentiate the signature assuming e = 65537
-        for _ in 0..15 {
-            exponentiated = exponentiated * exponentiated;
-        }
-    }
-    // Otherwise, e = 3 = 11
-    exponentiated = exponentiated * sig;
+    let exponentiated = exponentiate_signature(sig, exponent);
 
     // Convert the exponentiated signature to a byte array and reverse it to
     // get it in big endian order, which is much easier to work with for
