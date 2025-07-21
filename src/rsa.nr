@@ -368,27 +368,42 @@ fn compare_signature_sha512<let N: u32>(padded_sha512_hash: [u8; N], msg_hash: [
 }
 
 /**
- * @brief Exponentiate a signature by a given exponent
- * @details This function handles the exponentiation of a signature by a given exponent.
- * It supports the exponents 3 and 65537.
+ * @brief Exponentiate a signature by a given exponent using binary exponentiation
+ * @details This function handles the exponentiation of a signature by any given exponent.
+ * Uses the square-and-multiply algorithm for efficient modular exponentiation.
  * @param sig The signature to exponentiate
- * @param exponent The exponent to use
+ * @param exponent The exponent to use (any positive integer)
  * @return The exponentiated signature
  */
 fn exponentiate_signature<let NumLimbs: u32, let ModBits: u32>(
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> RuntimeBigNum<NumLimbs, ModBits> {
-    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
-    let mut exponentiated = sig * sig; // sig^2
-    if (exponent == 65537) {
-        for _ in 0..15 {
-            exponentiated = exponentiated * exponentiated;
+    assert((exponent > 0) & (exponent < 131072), "Exponent must be positive and less than 2^17");
+
+    // Binary exponentiation (square-and-multiply algorithm)
+    let mut result = RuntimeBigNum::one(sig.params);
+    let mut base = sig;
+    let mut exp = exponent;
+
+    // We assume the exponent won't be more than to 2^17 so we can
+    // have less iterations
+    for _ in 0..17 {
+        if exp > 0 {
+            // If the exponent is odd, multiply result by current base
+            if exp % 2 == 1 {
+                result = result * base;
+            }
+
+            // Square the base for the next bit
+            base = base * base;
+
+            // Divide exponent by 2 (move to the next bit)
+            exp = exp / 2;
         }
     }
-    // otherwise, e = 3 = 11
-    exponentiated = exponentiated * sig; // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
-    exponentiated
+
+    result
 }
 
 /**
@@ -396,7 +411,7 @@ fn exponentiate_signature<let NumLimbs: u32, let ModBits: u32>(
  *
  * @param msg_hash The SHA-1 hash of the message being verified
  * @param sig The RSA signature
- * @param exponent The public exponent (either 3 or 65537)
+ * @param exponent The public exponent (any positive integer)
  * @return True if the signature is valid, false otherwise
  */
 pub fn verify_sha1_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
@@ -411,7 +426,7 @@ pub fn verify_sha1_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
 
 /**
  * @brief Verify an RSA signature generated via the pkcs1v15 signature scheme with SHA-256
- * @note The `exponent` can be either 65537 or 3 (i.e. the most common values in use for RSA)
+ * @note The `exponent` can be any positive integer (commonly 3 or 65537 are used for RSA)
  * Rough cost: 2,048 bit RSA: 26,888 gates per verification
  *             1,024 bit RSA: 11,983 gates per verification
  * A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
@@ -431,7 +446,7 @@ pub fn verify_sha256_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
  *
  * @param msg_hash The SHA-384 hash of the message being verified
  * @param sig The RSA signature
- * @param exponent The public exponent (either 3 or 65537)
+ * @param exponent The public exponent (any positive integer)
  * @return True if the signature is valid, false otherwise
  */
 pub fn verify_sha384_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
@@ -449,7 +464,7 @@ pub fn verify_sha384_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
  *
  * @param msg_hash The SHA-512 hash of the message being verified
  * @param sig The RSA signature
- * @param exponent The public exponent (either 3 or 65537)
+ * @param exponent The public exponent (any positive integer)
  * @return True if the signature is valid, false otherwise
  */
 pub fn verify_sha512_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
@@ -465,7 +480,7 @@ pub fn verify_sha512_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
 /**
     * @brief Verify an RSA signature generated via the PSS signature scheme using SHA-1.
     *
-    * @note The exponent `e` can be either 65537 or 3 (i.e. the most common values in use for RSA)
+    * @note The exponent `e` can be any positive integer (commonly 3 or 65537 are used for RSA)
     **/
 pub fn verify_sha1_pss<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; 20],
@@ -555,7 +570,7 @@ pub fn verify_sha1_pss<let NumLimbs: u32, let ModBits: u32>(
 /**
     * @brief Verify an RSA signature generated via the PSS signature scheme.
     *
-    * @note The exponent `e` can be either 65537 or 3 (i.e. the most common values in use for RSA)
+    * @note The exponent `e` can be any positive integer (commonly 3 or 65537 are used for RSA)
     **/
 pub fn verify_sha256_pss<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; 32],
@@ -644,7 +659,7 @@ pub fn verify_sha256_pss<let NumLimbs: u32, let ModBits: u32>(
 /**
     * @brief Verify an RSA signature generated via the PSS signature scheme using SHA-384.
     *
-    * @note The exponent `e` can be either 65537 or 3 (i.e. the most common values in use for RSA)
+    * @note The exponent `e` can be any positive integer (commonly 3 or 65537 are used for RSA)
     **/
 pub fn verify_sha384_pss<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; 48],
@@ -731,7 +746,7 @@ pub fn verify_sha384_pss<let NumLimbs: u32, let ModBits: u32>(
 /**
     * @brief Verify an RSA signature generated via the PSS signature scheme using SHA-512.
     *
-    * @note The exponent `e` can be either 65537 or 3 (i.e. the most common values in use for RSA)
+    * @note The exponent `e` can be any positive integer (commonly 3 or 65537 are used for RSA)
     **/
 pub fn verify_sha512_pss<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; 64],
@@ -1037,6 +1052,156 @@ mod tests {
         };
 
         assert(verify_sha256_pkcs1v15(sha256_hash, signature, 3));
+    }
+
+    #[test]
+    fn test_verify_sha256_pkcs1v15_2048_exponent_38129() {
+        let sha256_hash: [u8; 32] =
+            sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
+
+        let params: Params2048 = BigNumParams::new(
+            false,
+            [
+                0x4f79aee9e865ee89b9695c2ac44903,
+                0xe33ac311e740f4dfc39492d38186d4,
+                0xf513677b71c4cdf88b9011d109402d,
+                0x940eba50ebc0a50b539268b2c9edee,
+                0x6d7b7dc633b0ba7deb34669da59af9,
+                0x69f0b92bd973d83643b54c86302bc8,
+                0xbee39cd038bb54491cab410bc1382d,
+                0xe59688c01aa8491c6522aa467fbdba,
+                0x8731b6ff98f9e1f792d4a4dff8c81d,
+                0x9d1773f064f1ce81301053e3abcc43,
+                0xe80e6137f3ccf06ca669e0d0f14c30,
+                0xefbf9d55ae96471f9fef8d5ac29c46,
+                0x284807c893f7e7af1a39d9c599ba76,
+                0x17491bdeafd3a2c796dd50f2444997,
+                0x21742c4e2dc66d064e36abb50f9c67,
+                0x58f1503ad765979883692dcff55252,
+                0xf613ad8641b9195cb742ac5d3ff778,
+                0xad,
+            ],
+            [
+                0xbd864af583a9911c93c5b92ab68568,
+                0x10d63ed8c0c83e91e945683061045b,
+                0xf38982278a43cfae6438348ae94c9b,
+                0x75133ea58bac5abff54a6e7a165283,
+                0xd3449474e97738f4c6a2d843722783,
+                0x9e3b3c08f360d9f967416af9becf84,
+                0xcd40081688aedd976009f34a964356,
+                0xa27adea282e0227e69ff47203440cb,
+                0x99f812956fd9377b0bed8deb543ede,
+                0x5f655415ed123df19398d5d479401d,
+                0x587d5cae3d0a5b34e3f8b2ca43ade1,
+                0xa4fde6c7f37ea8267d2183519ceb1,
+                0x1ba5bec0bb36c67251aa7678f7c169,
+                0x2e1ddae393d6a4f1a320b15b23b974,
+                0xfc61518efd066b5912b60cfd1d7474,
+                0xf854c457bf3908af1e4934d7c72d1f,
+                0xa44257cffc0c579bf0addd3c75d4df,
+                0x178b,
+            ],
+        );
+
+        let signature: RBN2048 = RuntimeBigNum {
+            params,
+            limbs: [
+                0x98156ae7cbad0e0fbaa9b254c445cf,
+                0x6f3ea82d1faf48ecb60f3f7481f020,
+                0xea0f2df747bbe8a8629c9dc6246da7,
+                0xb635b9de66aa7e600e924c0932b43b,
+                0xa010df8938db4c035c8473f0fd167d,
+                0xe37d1709aae17c76199c99efa5e5a7,
+                0xf8336b32c807dfb62d149fb8353f4e,
+                0xf852a4cc6a84981cd8a0d9eef5510f,
+                0x10c5cae74e75c83e3835906e5eea2a,
+                0xd83e21dc7e49277c86d81144837750,
+                0x72e367e8e2db3320145626438e6e93,
+                0x2129c9c0c2ce89e77661a15c8c7647,
+                0xe9c0b584a2ed003dbe4cadd2cfd87f,
+                0x6e5bd7521c235ab9e18356d089863a,
+                0x28e861ed03b6acc39fa7af5c068fa7,
+                0x4d1a681de2ce54f0d19eb736723af8,
+                0x2042cf79eb42702aab8526c68a64fd,
+                0x90,
+            ],
+        };
+        assert(verify_sha256_pkcs1v15(sha256_hash, signature, 38129));
+    }
+
+    #[test]
+    fn test_verify_sha256_pkcs1v15_2048_exponent_107903() {
+        let sha256_hash: [u8; 32] =
+            sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
+
+        let params: Params2048 = BigNumParams::new(
+            false,
+            [
+                0xf2bc2f4fd3637bb9ccc7e163324dbf,
+                0x88ac5e7a9abee89a393533168e8743,
+                0xa9d1ef7f5677329e23336052001928,
+                0x2fa85860b512fed4ecc0c94388e4dc,
+                0x61b27bbdb48fd8dcf155a1d3242029,
+                0x8119d20bb357bee95c9e6038448ea2,
+                0x4e8759208ccbfc555d32e3fa487af4,
+                0x7608d025ac5a266c1e795b7dc0840b,
+                0xd9df24711a6d2fed0d9248057cf278,
+                0xfbcd7907dc0dacc66a855324c5ae85,
+                0xcf3eca7c8405dfaf7ce39c1b1e526d,
+                0xf2c0a24eb8fd5b2b49eb261b01e5cb,
+                0xb7be784d951012ec79c8df7bb35e10,
+                0x2f7a97fe187189f04fead5f1b00850,
+                0x8246d382cd0821b066e801665eb949,
+                0xbca14eae9a7d4b426639eb99d15c3e,
+                0xfd0f6549b224f1be363e496501a0d8,
+                0xd0,
+            ],
+            [
+                0x66eb2aa6aa1141cacc9004c4aaafcb,
+                0x3983dda53fcc7548cac5070988d128,
+                0xa94b8ccd7bc37c9c6c074ec9dc418e,
+                0x57d6ec9504d4f025839a764cc80cd6,
+                0x5a99da586dd573c790ad0b0cf4048f,
+                0x4c7432020677232539d08b80c4d3,
+                0x338f75091af189cb1d224bd37c6249,
+                0xee6a89be24e36b5f7f1e7c38fae7ba,
+                0x1464843dcb6adf79a5775db61a461c,
+                0x6040e8536fcfa579e6058fe8fe2faf,
+                0x493b2bb04dd77744a5adc46d90652c,
+                0xef49699688680f2bed603abb89bf31,
+                0x5d86fdb1035de7023db8815fea79ef,
+                0x36e4b0aca5531d5c0da94709ba17a4,
+                0xa4327a03320a6982a60603abc981cb,
+                0x5d54032f69977241b356abc4590887,
+                0x62bf97079a59e9ce6320da47988e99,
+                0x1399,
+            ],
+        );
+
+        let signature: RBN2048 = RuntimeBigNum {
+            params,
+            limbs: [
+                0x4b2f40b350af5cf9b4cd5e4a48484b,
+                0x2d45da942f02e9c1ca4d0b5c8891eb,
+                0x95e181ee7a25546bb5f06881ed06ab,
+                0x96daf6f89a37583781ac3cadc3b474,
+                0xca3d251f57ab831e38da4a72febd6b,
+                0xd331a8762354c7a21a205bd00a56e4,
+                0x30e1612ca0c22b20df7e3b13ce20ab,
+                0x0e44e8752d7f365a5be65666a695c7,
+                0x2f9371a16fac95bdbe2bdd29fe3660,
+                0xb5aa14bd29c9cead7fe248cc8d8fef,
+                0x5152b5458eac4871b2dad8ae6f82a9,
+                0xb440d47429dfc47c83afa416a4f6e2,
+                0x6c71eb1897abe36235364ea0257868,
+                0xd2d51b57e037b494d663d8238f7ee5,
+                0xcc7fdf728797297df1292e63fd6e3c,
+                0x4eaf8992cf23b65390e2dfa7b012d7,
+                0xe84bdde98147a17f3a9297786a9b84,
+                0xaa,
+            ],
+        };
+        assert(verify_sha256_pkcs1v15(sha256_hash, signature, 107903));
     }
 
     #[test]
