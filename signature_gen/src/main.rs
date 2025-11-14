@@ -32,7 +32,7 @@ fn format_limbs_as_toml_value(limbs: &Vec<BigUint>) -> Vec<Value> {
         .collect()
 }
 
-fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u32, pss: bool) {
+fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u32, pss: bool, salt_len: usize) {
     let mut hasher = Sha256::new();
     hasher.update(msg.as_bytes());
     let hashed_message = hasher.finalize();
@@ -51,7 +51,7 @@ fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u3
     let pub_key: RsaPublicKey = priv_key.clone().into();
 
     let sig_bytes = if pss {
-        let mut signing_key = rsa::pss::BlindedSigningKey::<Sha256>::new(priv_key);
+        let mut signing_key = rsa::pss::BlindedSigningKey::<Sha256>::new_with_salt_len(priv_key, salt_len);
         let sig = signing_key.sign_with_rng(&mut rng, msg.as_bytes());
         sig.to_vec()
     } else {
@@ -199,6 +199,14 @@ fn main() {
                 .long("pss")
                 .help("Use RSA PSS"),
         )
+        .arg(
+            Arg::with_name("salt_len")
+                .short("s")
+                .long("salt-len")
+                .takes_value(true)
+                .help("Salt length for RSA PSS (only used with --pss)")
+                .default_value("32"),
+        )
         .get_matches();
 
     let msg = matches.value_of("msg").unwrap();
@@ -210,11 +218,12 @@ fn main() {
         "Number of bits of RSA signature can only be 1024 or 2048"
     );
     let pss = matches.is_present("pss");
+    let salt_len: usize = matches.value_of("salt_len").unwrap().parse().unwrap();
 
     if b == 1024 {
         generate_1024_bit_signature_parameters(msg, as_toml, e);
     } else {
-        generate_2048_bit_signature_parameters(msg, as_toml, e, pss);
+        generate_2048_bit_signature_parameters(msg, as_toml, e, pss, salt_len);
     }
 }
 

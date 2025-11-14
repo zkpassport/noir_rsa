@@ -8,6 +8,8 @@ global SHA256_HASH_LEN: u32 = 32;
 global SHA384_HASH_LEN: u32 = 48;
 global SHA512_HASH_LEN: u32 = 64;
 
+global MAX_SALT_LEN: u32 = 64;
+
 fn reverse_array<let N: u32>(array: [u8; N]) -> [u8; N] {
     let mut reversed = [0 as u8; N];
     for i in 0..N {
@@ -486,6 +488,7 @@ pub fn verify_sha1_pss<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; 20],
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
+    salt_len: u32,
 ) -> bool {
     let exponentiated = exponentiate_signature(sig, exponent);
 
@@ -501,10 +504,9 @@ pub fn verify_sha1_pss<let NumLimbs: u32, let ModBits: u32>(
     // The length of the modulus in bytes
     let key_len = (ModBits + 7) / 8;
     let h_len = 20; // SHA-1 produces 20-byte hashes
-    let s_len = 20; // Salt length is typically equal to hash length
 
-    // Check if emLen < hLen + sLen + 2
-    assert(em_len >= h_len + s_len + 2);
+    // Check if emLen < hLen + salt_len + 2
+    assert(em_len >= h_len + salt_len + 2);
 
     // Check if eM ends with 0xBC
     assert_eq(em[em.len() - 1], 0xBC);
@@ -539,28 +541,32 @@ pub fn verify_sha1_pss<let NumLimbs: u32, let ModBits: u32>(
     db[0] = 0;
 
     // Check if the leftmost octets of DB are zero
-    for i in 0..(em_len - h_len - s_len - 2) {
-        assert_eq(db[i], 0);
+    for i in 0..(em_len - h_len - 2) {
+        if i < em_len - h_len - salt_len - 2 {
+            assert_eq(db[i], 0);
+        }
     }
 
-    // Check if the octet at position emLen - hLen - sLen - 2 is 1
-    assert_eq(db[em_len - h_len - s_len - 2], 1);
+    // Check if the octet at position emLen - hLen - salt_len - 2 is 1
+    assert_eq(db[em_len - h_len - salt_len - 2], 1);
 
     // Extract salt
-    let salt: [u8; 20] = get_array_slice(db, db_mask_len - s_len, db_mask_len);
+    let salt: [u8; MAX_SALT_LEN] = get_array_slice(db, db_mask_len - salt_len, db_mask_len);
 
     // Construct M'
     // M' = (0x)00 00 00 00 00 00 00 00 || msg_hash || salt
-    let mut m_prime = [0 as u8; 48]; // 8 + h_len + s_len = 8 + 20 + 20 = 48
+    let mut m_prime = [0 as u8; 28 + MAX_SALT_LEN]; // 8 + h_len + salt_len = 8 + 20 + salt_len = 38 + salt_len
     for i in 8..28 {
         m_prime[i] = msg_hash[i - 8];
     }
-    for i in 28..48 {
-        m_prime[i] = salt[i - 28];
+    for i in 28..28 + MAX_SALT_LEN {
+        if i < (28 + salt_len) {
+            m_prime[i] = salt[i - 28];
+        }
     }
 
     // Compute H' using SHA-1
-    let m_prime_vec = BoundedVec::from_parts(m_prime, 48);
+    let m_prime_vec = BoundedVec::from_parts(m_prime, 28 + salt_len);
     let h_prime = sha1::sha1_var(m_prime_vec);
 
     // Compare H and H'
@@ -576,6 +582,7 @@ pub fn verify_sha256_pss<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; 32],
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
+    salt_len: u32,
 ) -> bool {
     let exponentiated = exponentiate_signature(sig, exponent);
 
@@ -591,10 +598,9 @@ pub fn verify_sha256_pss<let NumLimbs: u32, let ModBits: u32>(
     // The length of the modulus in bytes
     let key_len = (ModBits + 7) / 8;
     let h_len = 32;
-    let s_len = 32;
 
-    // Check if emLen < hLen + sLen + 2
-    assert(em_len >= h_len + s_len + 2);
+    // Check if emLen < hLen + salt_len + 2
+    assert(em_len >= h_len + salt_len + 2);
 
     // Check if eM ends with 0xBC
     assert_eq(em[em.len() - 1], 0xBC);
@@ -629,28 +635,32 @@ pub fn verify_sha256_pss<let NumLimbs: u32, let ModBits: u32>(
     db[0] = 0;
 
     // Check if the leftmost octets of DB are zero
-    for i in 0..(em_len - h_len - s_len - 2) {
-        assert_eq(db[i], 0);
+    for i in 0..(em_len - h_len - 2) {
+        if i < em_len - h_len - salt_len - 2 {
+            assert_eq(db[i], 0);
+        }
     }
 
     // Check if the octet at position emLen - hLen - sLen - 2 is 1
-    assert_eq(db[em_len - h_len - s_len - 2], 1);
+    assert_eq(db[em_len - h_len - salt_len - 2], 1);
 
     // Extract salt
-    let salt: [u8; 32] = get_array_slice(db, db_mask_len - s_len, db_mask_len);
+    let salt: [u8; MAX_SALT_LEN] = get_array_slice(db, db_mask_len - salt_len, db_mask_len);
 
     // Construct M'
     // M' = (0x)00 00 00 00 00 00 00 00 || msg_hash || salt
-    let mut m_prime = [0 as u8; 72]; // 8 + h_len + s_len
+    let mut m_prime = [0 as u8; 40 + MAX_SALT_LEN]; // 8 + h_len + salt_len = 8 + 32 + salt_len = 40 + salt_len
     for i in 8..40 {
         m_prime[i] = msg_hash[i - 8];
     }
-    for i in 40..72 {
-        m_prime[i] = salt[i - 40];
+    for i in 40..40 + MAX_SALT_LEN {
+        if i < (40 + salt_len) {
+            m_prime[i] = salt[i - 40];
+        }
     }
 
     // Compute H'
-    let h_prime = sha256::sha256_var(m_prime, 72);
+    let h_prime = sha256::sha256_var(m_prime, 40 + salt_len as u64);
 
     // Compare H and H'
     h == h_prime
@@ -665,6 +675,7 @@ pub fn verify_sha384_pss<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; 48],
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
+    salt_len: u32,
 ) -> bool {
     let exponentiated = exponentiate_signature(sig, exponent);
 
@@ -680,10 +691,9 @@ pub fn verify_sha384_pss<let NumLimbs: u32, let ModBits: u32>(
     // The length of the modulus in bytes
     let key_len = (ModBits + 7) / 8;
     let h_len = 48; // SHA-384 produces 48-byte hashes
-    let s_len = 48; // Salt length is typically equal to hash length
 
-    // Check if emLen < hLen + sLen + 2
-    assert(em_len >= h_len + s_len + 2);
+    // Check if emLen < hLen + salt_len + 2
+    assert(em_len >= h_len + salt_len + 2);
 
     // Check if eM ends with 0xBC
     assert_eq(em[em.len() - 1], 0xBC);
@@ -715,28 +725,32 @@ pub fn verify_sha384_pss<let NumLimbs: u32, let ModBits: u32>(
     db[0] = 0;
 
     // Check if the leftmost octets of DB are zero
-    for i in 0..(em_len - h_len - s_len - 2) {
-        assert_eq(db[i], 0);
+    for i in 0..(em_len - h_len - 2) {
+        if i < em_len - h_len - salt_len - 2 {
+            assert_eq(db[i], 0);
+        }
     }
 
     // Check if the octet at position emLen - hLen - sLen - 2 is 1
-    assert_eq(db[em_len - h_len - s_len - 2], 1);
+    assert_eq(db[em_len - h_len - salt_len - 2], 1);
 
     // Extract salt
-    let salt: [u8; 48] = get_array_slice(db, db_mask_len - s_len, db_mask_len);
+    let salt: [u8; MAX_SALT_LEN] = get_array_slice(db, db_mask_len - salt_len, db_mask_len);
 
     // Construct M'
     // M' = (0x)00 00 00 00 00 00 00 00 || msg_hash || salt
-    let mut m_prime = [0 as u8; 104]; // 8 + h_len + s_len = 8 + 48 + 48 = 104
+    let mut m_prime = [0 as u8; 104]; // 8 + h_len + salt_len = 8 + 48 + salt_len = 56 + salt_len
     for i in 8..56 {
         m_prime[i] = msg_hash[i - 8];
     }
-    for i in 56..104 {
-        m_prime[i] = salt[i - 56];
+    for i in 56..56 + MAX_SALT_LEN {
+        if i < (56 + salt_len) {
+            m_prime[i] = salt[i - 56];
+        }
     }
 
     // Compute H' using SHA-384
-    let m_prime_vec = BoundedVec::from_parts(m_prime, 104);
+    let m_prime_vec = BoundedVec::from_parts(m_prime, 56 + salt_len);
     let h_prime = sha384::sha384_var(m_prime_vec);
 
     // Compare H and H'
@@ -752,6 +766,7 @@ pub fn verify_sha512_pss<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; 64],
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
+    salt_len: u32,
 ) -> bool {
     let exponentiated = exponentiate_signature(sig, exponent);
 
@@ -767,10 +782,9 @@ pub fn verify_sha512_pss<let NumLimbs: u32, let ModBits: u32>(
     // The length of the modulus in bytes
     let key_len = (ModBits + 7) / 8;
     let h_len = 64; // SHA-512 produces 64-byte hashes
-    let s_len = 64; // Salt length is typically equal to hash length
 
-    // Check if emLen < hLen + sLen + 2
-    assert(em_len >= h_len + s_len + 2);
+    // Check if emLen < hLen + salt_len + 2
+    assert(em_len >= h_len + salt_len + 2);
 
     // Check if eM ends with 0xBC
     assert_eq(em[em.len() - 1], 0xBC);
@@ -802,28 +816,32 @@ pub fn verify_sha512_pss<let NumLimbs: u32, let ModBits: u32>(
     db[0] = 0;
 
     // Check if the leftmost octets of DB are zero
-    for i in 0..(em_len - h_len - s_len - 2) {
-        assert_eq(db[i], 0);
+    for i in 0..(em_len - h_len - 2) {
+        if i < em_len - h_len - salt_len - 2 {
+            assert_eq(db[i], 0);
+        }
     }
 
     // Check if the octet at position emLen - hLen - sLen - 2 is 1
-    assert_eq(db[em_len - h_len - s_len - 2], 1);
+    assert_eq(db[em_len - h_len - salt_len - 2], 1);
 
     // Extract salt
-    let salt: [u8; 64] = get_array_slice(db, db_mask_len - s_len, db_mask_len);
+    let salt: [u8; MAX_SALT_LEN] = get_array_slice(db, db_mask_len - salt_len, db_mask_len);
 
     // Construct M'
     // M' = (0x)00 00 00 00 00 00 00 00 || msg_hash || salt
-    let mut m_prime = [0 as u8; 136]; // 8 + h_len + s_len = 8 + 64 + 64 = 136
+    let mut m_prime = [0 as u8; 72 + MAX_SALT_LEN]; // 8 + h_len + salt_len = 8 + 64 + salt_len = 72 + salt_len
     for i in 8..72 {
         m_prime[i] = msg_hash[i - 8];
     }
-    for i in 72..136 {
-        m_prime[i] = salt[i - 72];
+    for i in 72..72 + MAX_SALT_LEN {
+        if i < (72 + salt_len) {
+            m_prime[i] = salt[i - 72];
+        }
     }
 
     // Compute H' using SHA-512
-    let m_prime_vec = BoundedVec::from_parts(m_prime, 136);
+    let m_prime_vec = BoundedVec::from_parts(m_prime, 72 + salt_len);
     let h_prime = sha512::sha512_var(m_prime_vec);
 
     // Compare H and H'
@@ -1520,7 +1538,7 @@ mod tests {
                 0x78,
             ],
         };
-        assert(verify_sha256_pss(sha256_hash, signature, 65537));
+        assert(verify_sha256_pss(sha256_hash, signature, 65537, 32));
     }
 
     #[test]
@@ -1596,7 +1614,7 @@ mod tests {
             ],
         };
 
-        assert(verify_sha384_pss(sha384_hash, signature, 65537));
+        assert(verify_sha384_pss(sha384_hash, signature, 65537, 48));
     }
 
     #[test]
@@ -1672,7 +1690,7 @@ mod tests {
             ],
         };
 
-        assert(verify_sha512_pss(sha512_hash, signature, 65537));
+        assert(verify_sha512_pss(sha512_hash, signature, 65537, 64));
     }
 
     #[test]
@@ -1797,7 +1815,7 @@ mod tests {
             ],
         };
 
-        assert(verify_sha256_pss(sha256_hash, signature, 65537));
+        assert(verify_sha256_pss(sha256_hash, signature, 65537, 32));
     }
 
     #[test]
@@ -1871,7 +1889,7 @@ mod tests {
             ],
         };
 
-        assert(verify_sha256_pss(sha256_hash, signature, 3));
+        assert(verify_sha256_pss(sha256_hash, signature, 3, 32));
     }
 
     // Test an unusual key length that is not a multiple of 8
@@ -1991,7 +2009,7 @@ fn test_verify_sha256_pss_1964() {
             ],
         };
 
-        assert(verify_sha256_pss(sha256_hash, signature, 65537));
+        assert(verify_sha256_pss(sha256_hash, signature, 65537, 32));
     }
 
     #[test]
@@ -2145,7 +2163,81 @@ fn test_verify_sha256_pss_1964() {
             ],
         };
 
-        assert(verify_sha1_pss(sha1_hash, signature, 65537));
+        assert(verify_sha1_pss(sha1_hash, signature, 65537, 20));
+    }
+
+    #[test]
+    fn test_verify_sha256_pss_2048_salt_len_64() {
+        let sha256_hash: [u8; 32] =
+            sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
+        let params: Params2048 = BigNumParams::new(
+            false,
+            [
+                0x93f3d892703247d5f4bdb3e3864a8f,
+                0xeeb6fe2e10ba74b661ede57de66f32,
+                0x22651fe330d4c4112b37bdf4b66e50,
+                0x95737da8b410591ef8cf9a5147ec82,
+                0x36795c89b09d4b2bb1286b3eb02408,
+                0xed2fd4e16a15e340c4823ed14d05c0,
+                0xf341f7d5db9b59a0cee7b49926df51,
+                0xab3d6a418ae21553c0218db4bd539d,
+                0x5a44ef24779a5ff840ebecf8954d91,
+                0xbea7ac89cee886658623e593beb453,
+                0x994b0f172962a7765e45fe554b6249,
+                0x992308a3c4f3f47a60f94ebab0241b,
+                0x5f282ac7fb2acaf2bec3459ca99ea5,
+                0xa0342e2c4c14edb82ca07cfbca5320,
+                0xe97df079c947e20f8a709d96271dd6,
+                0x9fa5990ee6e97183646e8d22c8e57d,
+                0x844dff0cf2b0a2956116138f6e8c86,
+                0xcc,
+            ],
+            [
+                0x7a8c4227c441fae3097d159ce956b9,
+                0x9d571d97eb07bc2ec881f4acc3d113,
+                0x6bf129121fa51e4ac86920085887da,
+                0x8701e8a01203d14ecf19796eda9a88,
+                0x7a8f314d20c4b92292fcadc9ea757,
+                0x378574e7179c0cac1a919f11a8390b,
+                0x7a4a8798691d8f73e4f362bc4440eb,
+                0xcc54c22299d9b1f19e9a6be1791317,
+                0x64e7a2c5f04de32c39e30cd4ba0654,
+                0xee830dc09aa0e794066ab7a4e99cd3,
+                0xd3914c8986c9c907d336444344822a,
+                0xed305c5214ca63bc90b0d16736b891,
+                0x9623edbb4008ef46479246922e405f,
+                0xf961338f15eddc89e5f381ea613f10,
+                0x80effc34e962bf93716e3331b04dee,
+                0x1f0e9cfa24cca47dea8773e38abe43,
+                0x16e487c8f1567cac2ded7dbf664704,
+                0x1407,
+            ],
+        );
+        let signature: RBN2048 = RuntimeBigNum {
+            params,
+            limbs: [
+                0x7112edfa6f6fd5bfb0c38c50b10ecf,
+                0xfcf8394640dd0c461b31e1139cfce1,
+                0xfc63070c16fa641577632dd483f62a,
+                0xf80b84f90cddbb6838f7b572ecd8a9,
+                0x6db9213f70fa40d11e1ea0b71807e4,
+                0x9a1c6f96a7753164bd0402beb70e23,
+                0x2cdead0b775f54c33c8b33c73848f2,
+                0xf1140865734f5ff9f03c783400824d,
+                0x36eb972e53b5acb6c0217d1b470cb8,
+                0x5ee60ccd804ebab686b51adbd759be,
+                0x4d2349a887d2d707f8c2fe0a53dc83,
+                0x86bf074d73c11f919157fe4a05bf49,
+                0x0de6169875ea10baf96cf7b53fcdef,
+                0x6703f35e54cc01ce5345d216dabea9,
+                0xa27e236d8bcc572fc5585ea7289de4,
+                0x222c277074191eb0c3b8816813f87d,
+                0xf74e23fc27c1df4f43b528b43eb4d9,
+                0x43,
+            ],
+        };
+
+        assert(verify_sha256_pss(sha256_hash, signature, 65537, 64));
     }
 
 }
