@@ -161,69 +161,178 @@ fn generate_1024_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u3
     }
 }
 
+fn parse_limbs_to_biguint(limbs_str: &str) -> BigUint {
+    let mut result = BigUint::from(0u32);
+    for (i, limb_str) in limbs_str
+        .split(',')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .enumerate()
+    {
+        let limb_str = limb_str.strip_prefix("0x").unwrap_or(limb_str);
+        let limb = BigUint::parse_bytes(limb_str.as_bytes(), 16)
+            .expect(&format!("Invalid hex limb: {}", limb_str));
+        result += limb << (120 * i);
+    }
+    result
+}
+
+fn generate_bignum_params_from_modulus(modulus: &BigUint, bit_size: usize, as_toml: bool) {
+    let modulus_limbs: Vec<BigUint> = split_into_120_bit_limbs(modulus, bit_size);
+    let redc_limbs = split_into_120_bit_limbs(
+        &compute_barrett_reduction_parameter(modulus),
+        bit_size,
+    );
+
+    let num_limbs = ((bit_size as f64) / 120.0).ceil() as usize;
+
+    if as_toml {
+        println!(
+            "modulus_limbs = {}",
+            Value::Array(format_limbs_as_toml_value(&modulus_limbs))
+        );
+        println!(
+            "redc_limbs = {}",
+            Value::Array(format_limbs_as_toml_value(&redc_limbs))
+        );
+    } else {
+        println!(
+            "let params: BigNumParams<{}, {}> = BigNumParams::new(\n\tfalse,\n\t[{}],\n\t[{}]\n);",
+            num_limbs,
+            bit_size,
+            format_limbs_as_hex(&modulus_limbs),
+            format_limbs_as_hex(&redc_limbs)
+        );
+    }
+}
+
 fn main() {
     let matches = App::new("RSA Signature Generator")
-        .arg(
-            Arg::with_name("msg")
-                .short("m")
-                .long("msg")
-                .takes_value(true)
-                .help("Message to sign")
-                .required(true),
+        .subcommand(
+            clap::SubCommand::with_name("sign")
+                .about("Generate RSA signature parameters")
+                .arg(
+                    Arg::with_name("msg")
+                        .short("m")
+                        .long("msg")
+                        .takes_value(true)
+                        .help("Message to sign")
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("toml")
+                        .short("t")
+                        .long("toml")
+                        .help("Print output in TOML format"),
+                )
+                .arg(
+                    Arg::with_name("exponent")
+                        .short("e")
+                        .long("exponent")
+                        .takes_value(true)
+                        .help("Exponent to use for the key")
+                        .default_value("65537"),
+                )
+                .arg(
+                    Arg::with_name("bits")
+                        .short("b")
+                        .long("bits")
+                        .takes_value(true)
+                        .help("Number of bits of RSA signature (1024 or 2048)")
+                        .default_value("2048"),
+                )
+                .arg(
+                    Arg::with_name("pss")
+                        .short("p")
+                        .long("pss")
+                        .help("Use RSA PSS"),
+                )
+                .arg(
+                    Arg::with_name("salt_len")
+                        .short("s")
+                        .long("salt-len")
+                        .takes_value(true)
+                        .help("Salt length for RSA PSS (only used with --pss)")
+                        .default_value("32"),
+                ),
         )
-        .arg(
-            Arg::with_name("toml")
-                .short("t")
-                .long("toml")
-                .help("Print output in TOML format"),
-        )
-        .arg(
-            Arg::with_name("exponent")
-                .short("e")
-                .long("exponent")
-                .takes_value(true)
-                .help("Exponent to use for the key")
-                .default_value("65537"),
-        )
-        .arg(
-            Arg::with_name("bits")
-                .short("b")
-                .long("bits")
-                .takes_value(true)
-                .help("Number of bits of RSA signature (1024 or 2048")
-                .default_value("2048"),
-        )
-        .arg(
-            Arg::with_name("pss")
-                .short("p")
-                .long("pss")
-                .help("Use RSA PSS"),
-        )
-        .arg(
-            Arg::with_name("salt_len")
-                .short("s")
-                .long("salt-len")
-                .takes_value(true)
-                .help("Salt length for RSA PSS (only used with --pss)")
-                .default_value("32"),
+        .subcommand(
+            clap::SubCommand::with_name("params")
+                .about("Generate BigNum parameters (modulus and Barrett reduction) from a public key")
+                .arg(
+                    Arg::with_name("pubkey")
+                        .short("k")
+                        .long("pubkey")
+                        .takes_value(true)
+                        .help("RSA public key modulus as a hex string (with or without 0x prefix)")
+                        .conflicts_with("limbs"),
+                )
+                .arg(
+                    Arg::with_name("limbs")
+                        .short("l")
+                        .long("limbs")
+                        .takes_value(true)
+                        .help("RSA public key modulus as comma-separated 120-bit hex limbs (e.g. 0xaabb,0xccdd,...)")
+                        .conflicts_with("pubkey"),
+                )
+                .arg(
+                    Arg::with_name("bits")
+                        .short("b")
+                        .long("bits")
+                        .takes_value(true)
+                        .help("Bit size of the RSA key (e.g. 1024, 2048, 4096)")
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("toml")
+                        .short("t")
+                        .long("toml")
+                        .help("Print output in TOML format"),
+                ),
         )
         .get_matches();
 
-    let msg = matches.value_of("msg").unwrap();
-    let as_toml = matches.is_present("toml");
-    let e: u32 = matches.value_of("exponent").unwrap().parse().unwrap();
-    let b: u32 = matches.value_of("bits").unwrap().parse().unwrap();
-    assert!(
-        b == 1024 || b == 2048,
-        "Number of bits of RSA signature can only be 1024 or 2048"
-    );
-    let pss = matches.is_present("pss");
-    let salt_len: usize = matches.value_of("salt_len").unwrap().parse().unwrap();
+    match matches.subcommand() {
+        ("sign", Some(sub_m)) => {
+            let msg = sub_m.value_of("msg").unwrap();
+            let as_toml = sub_m.is_present("toml");
+            let e: u32 = sub_m.value_of("exponent").unwrap().parse().unwrap();
+            let b: u32 = sub_m.value_of("bits").unwrap().parse().unwrap();
+            assert!(
+                b == 1024 || b == 2048,
+                "Number of bits of RSA signature can only be 1024 or 2048"
+            );
+            let pss = sub_m.is_present("pss");
+            let salt_len: usize = sub_m.value_of("salt_len").unwrap().parse().unwrap();
 
-    if b == 1024 {
-        generate_1024_bit_signature_parameters(msg, as_toml, e);
-    } else {
-        generate_2048_bit_signature_parameters(msg, as_toml, e, pss, salt_len);
+            if b == 1024 {
+                generate_1024_bit_signature_parameters(msg, as_toml, e);
+            } else {
+                generate_2048_bit_signature_parameters(msg, as_toml, e, pss, salt_len);
+            }
+        }
+        ("params", Some(sub_m)) => {
+            let bits: usize = sub_m.value_of("bits").unwrap().parse().unwrap();
+            let as_toml = sub_m.is_present("toml");
+
+            let modulus = if let Some(pubkey) = sub_m.value_of("pubkey") {
+                let pubkey_hex = pubkey.strip_prefix("0x").unwrap_or(pubkey);
+                let pubkey_bytes = hex::decode(pubkey_hex).expect("Invalid hex string for pubkey");
+                BigUint::from_bytes_be(&pubkey_bytes)
+            } else if let Some(limbs) = sub_m.value_of("limbs") {
+                parse_limbs_to_biguint(limbs)
+            } else {
+                eprintln!("Either --pubkey or --limbs must be provided");
+                std::process::exit(1);
+            };
+
+            generate_bignum_params_from_modulus(&modulus, bits, as_toml);
+        }
+        _ => {
+            eprintln!("Please specify a subcommand: 'sign' or 'params'");
+            eprintln!("Run with --help for usage information");
+            std::process::exit(1);
+        }
     }
 }
 
