@@ -381,7 +381,7 @@ fn exponentiate_signature<let NumLimbs: u32, let ModBits: u32>(
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> RuntimeBigNum<NumLimbs, ModBits> {
-    assert((exponent > 0) & (exponent < 131072), "Exponent must be positive and less than 2^17");
+    assert((exponent > 1) & (exponent < 131072), "Exponent must be more than 1 and less than 2^17");
 
     // Binary exponentiation (square-and-multiply algorithm)
     let mut result = RuntimeBigNum::one(sig.params);
