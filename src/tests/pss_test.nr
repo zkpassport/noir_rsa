@@ -433,7 +433,7 @@ fn test_verify_sha256_pss_2048_exponent_3() {
 }
 
 // Test an unusual key length that is not a multiple of 8
-/*#[test]
+#[test]
 fn test_verify_sha256_pss_1964() {
     let sha256_hash: [u8; 32] = sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
     let params: Params1964 = BigNumParams::new(
@@ -500,8 +500,8 @@ fn test_verify_sha256_pss_1964() {
         ],
     };
 
-    assert(verify_sha256_pss(sha256_hash, signature, 65537));
-}*/
+    assert(verify_sha256_pss(sha256_hash, signature, 65537, 32));
+}
 
 // Test an edge case where the key length in bytes is greater than the encoded message length
 #[test]
