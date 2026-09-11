@@ -2,9 +2,10 @@ use crate::types::{
     Params1024, Params1025, Params2048, Params4096, RBN1024, RBN1025, RBN2048, RBN4096,
 };
 
-use crate::pkcs1v15::{
-    verify_sha1_pkcs1v15, verify_sha256_pkcs1v15, verify_sha384_pkcs1v15, verify_sha512_pkcs1v15,
-};
+use crate::pkcs1v15::{verify_sha1_pkcs1v15, verify_sha384_pkcs1v15, verify_sha512_pkcs1v15};
+// verify_sha256_pkcs1v15 is imported through the backward-compatible `noir_rsa::rsa::*`
+// re-export path so that path stays covered by the test suite.
+use crate::rsa::verify_sha256_pkcs1v15;
 
 use bignum::params::BigNumParams;
 use bignum::RuntimeBigNum;
