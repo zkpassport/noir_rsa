@@ -1,4 +1,4 @@
-use super::rsa::verify_sha256_pkcs1v15;
+use crate::pkcs1v15::verify_sha256_pkcs1v15;
 use bignum::{params::BigNumParams, RuntimeBigNum};
 
 #[export]
