@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789375997231,
+  "lastUpdate": 1789376000447,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -360,6 +360,60 @@ window.BENCHMARK_DATA = {
           {
             "name": "verify_sha256_pss_2048_const",
             "value": 5397,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9adeac2ad1779f0958c1880a443bb33e71fc826a",
+          "message": "Merge pull request #14 from zkpassport/as/exponentiation-optimization\n\nchore: optimize exponentiate_signature and add tests (mirror)",
+          "timestamp": "2026-09-14T11:52:49+03:00",
+          "tree_id": "8cd329372dd5a82e4582f2e64dcd32d410345d77",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/9adeac2ad1779f0958c1880a443bb33e71fc826a"
+        },
+        "date": 1789376000432,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate",
+            "value": 2140,
+            "unit": "opcodes"
+          },
+          {
+            "name": "exponentiate_const",
+            "value": 2137,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048",
+            "value": 2457,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const",
+            "value": 2454,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048",
+            "value": 5433,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const",
+            "value": 5430,
             "unit": "opcodes"
           }
         ]
