@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789374939153,
+  "lastUpdate": 1789374941159,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -113,6 +113,60 @@ window.BENCHMARK_DATA = {
           {
             "name": "test_verify_sha256_pkcs1v15_2048.json/main",
             "value": 16350,
+            "unit": "circuit_size"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5f8bf3a8b52924bf479acf3a6f70ed2d204504e5",
+          "message": "Merge pull request #6 from zkpassport/as/noir-rsa-refactoring\n\nchore: Split rsa.nr into modules (no behavior change)",
+          "timestamp": "2026-09-14T11:34:35+03:00",
+          "tree_id": "5d6142d20c197b5d4390b5024c7d44c5de0fcc82",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/5f8bf3a8b52924bf479acf3a6f70ed2d204504e5"
+        },
+        "date": 1789374941145,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate.json/main",
+            "value": 66610,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "exponentiate_const.json/main",
+            "value": 20416,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048.json/main",
+            "value": 67164,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const.json/main",
+            "value": 20971,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "verify_sha256_pss_2048.json/main",
+            "value": 105324,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const.json/main",
+            "value": 59142,
             "unit": "circuit_size"
           }
         ]
