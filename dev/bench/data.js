@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789377168997,
+  "lastUpdate": 1789384854085,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -352,6 +352,60 @@ window.BENCHMARK_DATA = {
           {
             "name": "verify_sha256_pss_2048_const.json/main",
             "value": 4037,
+            "unit": "acir_opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "516db18a732d3426d9417444e5b6c0733d2b0d1c",
+          "message": "Merge pull request #13 from zkpassport/as/readme-update\n\nchore: Update README, expose a backward-compatible public API, and bump noir-bignum",
+          "timestamp": "2026-09-14T14:20:25+03:00",
+          "tree_id": "1af3b43cfdb4e53126219e6ad6d5b4def25f2ed8",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/516db18a732d3426d9417444e5b6c0733d2b0d1c"
+        },
+        "date": 1789384853508,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate.json/main",
+            "value": 13625,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "exponentiate_const.json/main",
+            "value": 2702,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048.json/main",
+            "value": 14223,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const.json/main",
+            "value": 3264,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048.json/main",
+            "value": 15052,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const.json/main",
+            "value": 4093,
             "unit": "acir_opcodes"
           }
         ]
