@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789376123907,
+  "lastUpdate": 1789376127721,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -522,6 +522,60 @@ window.BENCHMARK_DATA = {
           {
             "name": "verify_sha256_pss_2048_const",
             "value": 5430,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3a8b14a322ab6d3772850cce2a98583f5aaf2184",
+          "message": "Merge pull request #15 from zkpassport/as/mgf1-refactoring\n\nchore: generalize mgf1 over the hash function",
+          "timestamp": "2026-09-14T11:54:48+03:00",
+          "tree_id": "7e71262ccf7da349d570083d3d3316a4918407a5",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/3a8b14a322ab6d3772850cce2a98583f5aaf2184"
+        },
+        "date": 1789376127709,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate",
+            "value": 2140,
+            "unit": "opcodes"
+          },
+          {
+            "name": "exponentiate_const",
+            "value": 2137,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048",
+            "value": 2457,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const",
+            "value": 2454,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048",
+            "value": 3436,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const",
+            "value": 3433,
             "unit": "opcodes"
           }
         ]
