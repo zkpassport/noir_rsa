@@ -1,40 +1,40 @@
 use bignum::RuntimeBigNum;
 
-/**
- * @brief Exponentiate a signature by a given exponent using binary exponentiation
- * @details This function handles the exponentiation of a signature by any given exponent.
- * Uses the square-and-multiply algorithm for efficient modular exponentiation.
- * @param sig The signature to exponentiate
- * @param exponent The exponent to use (any positive integer)
- * @return The exponentiated signature
- */
+/// Raise a signature to a public exponent using binary (square-and-multiply)
+/// modular exponentiation.
+///
+/// The exponent is a runtime value, constrained to [2, 2^17 - 1]. That range
+/// covers the public exponents RSA certificates use in practice (e.g. 3 and 65537).
 pub(crate) fn exponentiate_signature<let NumLimbs: u32, let ModBits: u32>(
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> RuntimeBigNum<NumLimbs, ModBits> {
-    assert((exponent > 1) & (exponent < 131072), "Exponent must be more than 1 and less than 2^17");
+    // Constrain the exponent to [2, 2^17 - 1].
+    // Lower bound: for exponent < 2 the subtraction wraps modulo the field prime,
+    // producing a large value that fails the 17-bit range check.
+    (exponent as Field - 2).assert_max_bit_size::<17>();
+    // Upper bound: exponent < 2^17.
+    (exponent as Field).assert_max_bit_size::<17>();
+
+    // The exponent is < 2^17, so 17 bits describe it fully. Decompose it up front
+    // (least-significant bit first) so the loop can read each bit directly instead
+    // of doing a division every iteration.
+    let bits: [bool; 17] = (exponent as Field).to_le_bits::<17>();
 
     // Binary exponentiation (square-and-multiply algorithm)
     let mut result = RuntimeBigNum::one(sig.params);
     let mut base = sig;
-    let mut exp = exponent;
 
-    // We assume the exponent won't be more than to 2^17 so we can
-    // have less iterations
-    for _ in 0..17 {
-        if exp > 0 {
-            // If the exponent is odd, multiply result by current base
-            if exp % 2 == 1 {
-                result = result * base;
-            }
-
-            // Square the base for the next bit
+    for i in 0..17 {
+        // If bit i is set, multiply the result by the current base, which is sig^(2^i).
+        if bits[i] {
+            result = result * base;
+        }
+        // Square the base to get sig^(2^(i+1)) for the next bit. Skip on the last
+        // iteration: sig^(2^17) is never used, so that squaring would be wasted.
+        if i != 16 {
             base = base * base;
-
-            // Divide exponent by 2 (move to the next bit)
-            exp = exp / 2;
         }
     }
-
     result
 }
