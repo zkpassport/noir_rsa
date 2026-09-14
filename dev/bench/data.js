@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789375995819,
+  "lastUpdate": 1789375997231,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -221,6 +221,60 @@ window.BENCHMARK_DATA = {
           {
             "name": "verify_sha256_pss_2048_const.json/main",
             "value": 59142,
+            "unit": "circuit_size"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9adeac2ad1779f0958c1880a443bb33e71fc826a",
+          "message": "Merge pull request #14 from zkpassport/as/exponentiation-optimization\n\nchore: optimize exponentiate_signature and add tests (mirror)",
+          "timestamp": "2026-09-14T11:52:49+03:00",
+          "tree_id": "8cd329372dd5a82e4582f2e64dcd32d410345d77",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/9adeac2ad1779f0958c1880a443bb33e71fc826a"
+        },
+        "date": 1789375997218,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate.json/main",
+            "value": 51194,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "exponentiate_const.json/main",
+            "value": 19526,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048.json/main",
+            "value": 51749,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const.json/main",
+            "value": 20081,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "verify_sha256_pss_2048.json/main",
+            "value": 89915,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const.json/main",
+            "value": 58252,
             "unit": "circuit_size"
           }
         ]
