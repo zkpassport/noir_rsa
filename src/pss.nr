@@ -76,8 +76,13 @@ fn pss_recover_mprime<let ModBits: u32, let HASH_LEN: u32>(
     for i in 0..(ModBits + 7) / 8 - HASH_LEN - 1 {
         db[i] = masked_db[i] ^ db_mask[i];
     }
-    // Clear the leftmost byte (the bits that were masked to zero above)
-    db[0] = 0;
+    // Clear only the leftmost (8 * em_len - em_bits) bits of DB's first byte,
+    // per RFC 8017 §9.1.2 step 8 - NOT the whole byte. Wiping all 8 bits makes
+    // the PS-zero check below pass trivially, leaving the low bits of
+    // masked_db[0] ^ db_mask[0] unconstrained (a ~2^(8 - n) relaxation of the
+    // accepted set). Keeping them lets the PS-zero / separator checks pin them.
+    let leftmost_bits: u8 = (8 * em_len - em_bits) as u8;
+    db[0] &= 0xff >> leftmost_bits;
 
     // DB = PS (0x00 run) || 0x01 || salt. Check the zero run and the separator.
     for i in 0..(ModBits + 7) / 8 - HASH_LEN - 2 {
@@ -175,4 +180,20 @@ pub fn verify_sha512_pss<let NumLimbs: u32, let ModBits: u32>(
         pss_recover_mprime::<ModBits, SHA512_HASH_LEN>(masked_db, db_mask, msg_hash, salt_len);
     let h_prime = sha512::sha512_var(BoundedVec::from_parts(m_prime, len));
     h == h_prime
+}
+
+mod tests {
+    use super::pss_recover_mprime;
+
+    // RFC 8017 §9.1.2 step 8: only the leftmost (8*emLen - emBits) bits of DB[0]
+    // may be cleared. A low bit set in DB[0] is part of PS and must be rejected;
+    // the old `db[0] = 0` wiped the whole byte and let this through.
+    #[test(should_fail)]
+    fn pss_step8_rejects_low_bit_of_db0() {
+        let mut masked_db = [0 as u8; (2048 + 7) / 8 - 32 - 1];
+        masked_db[256 - 32 - 32 - 2] = 1; // 0x01 separator
+        masked_db[0] = 0x01; // low bit in PS region -> must fail
+        let _ =
+            pss_recover_mprime::<2048, 32>(masked_db, [0; (2048 + 7) / 8 - 32 - 1], [0; 32], 32);
+    }
 }
