@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789374946353,
+  "lastUpdate": 1789375995819,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -82,6 +82,60 @@ window.BENCHMARK_DATA = {
           {
             "name": "verify_sha256_pss_2048_const.json/main",
             "value": 4178,
+            "unit": "acir_opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9adeac2ad1779f0958c1880a443bb33e71fc826a",
+          "message": "Merge pull request #14 from zkpassport/as/exponentiation-optimization\n\nchore: optimize exponentiate_signature and add tests (mirror)",
+          "timestamp": "2026-09-14T11:52:49+03:00",
+          "tree_id": "8cd329372dd5a82e4582f2e64dcd32d410345d77",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/9adeac2ad1779f0958c1880a443bb33e71fc826a"
+        },
+        "date": 1789375995278,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate.json/main",
+            "value": 13625,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "exponentiate_const.json/main",
+            "value": 2702,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048.json/main",
+            "value": 14131,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const.json/main",
+            "value": 3208,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048.json/main",
+            "value": 14960,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const.json/main",
+            "value": 4037,
             "unit": "acir_opcodes"
           }
         ]
