@@ -23,7 +23,10 @@ fn pss_split<let NumLimbs: u32, let ModBits: u32, let HASH_LEN: u32>(
 ) -> ([u8; (ModBits + 7) / 8 - HASH_LEN - 1], [u8; HASH_LEN]) {
     let exponentiated = exponentiate_signature(sig, exponent);
 
-    // Encoded message in big-endian order
+    // Encoded message in big-endian order.
+    // Must stay `to_be_bytes` (safe), not `to_be_bytes_unsafe`: it validates sig^e is
+    // canonical in [0, n) before EM is parsed. Switching to the unsafe variant would
+    // let a prover pass a non-canonical sig^e and is a soundness hole.
     let em: [u8; (ModBits + 7) / 8] = exponentiated.to_be_bytes();
 
     let em_bits: u32 = ModBits - 1;

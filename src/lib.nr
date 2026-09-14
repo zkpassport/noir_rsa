@@ -4,9 +4,9 @@ mod utils;
 mod benchmarks;
 mod tests;
 
-mod rsa;
-mod pkcs1v15;
+pub mod rsa;
+pub mod pkcs1v15;
 mod mgf1;
-mod pss;
+pub mod pss;
 
 pub mod types;

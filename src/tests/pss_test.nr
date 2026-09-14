@@ -3,7 +3,10 @@ use crate::types::{
     RBN4096,
 };
 
-use crate::pss::{verify_sha1_pss, verify_sha256_pss, verify_sha384_pss, verify_sha512_pss};
+use crate::pss::{verify_sha1_pss, verify_sha384_pss, verify_sha512_pss};
+// verify_sha256_pss is imported through the backward-compatible `noir_rsa::rsa::*`
+// re-export path so that path stays covered by the test suite.
+use crate::rsa::verify_sha256_pss;
 
 use bignum::params::BigNumParams;
 use bignum::RuntimeBigNum;

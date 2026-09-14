@@ -1,5 +1,14 @@
 use bignum::RuntimeBigNum;
 
+// Backward-compatible re-exports. Before the pkcs1v15/pss split these verification
+// functions lived in this module, so consumers imported them as `noir_rsa::rsa::verify_*`.
+// Re-export them here so that path keeps resolving; the same functions are also available
+// under `noir_rsa::pkcs1v15::*` and `noir_rsa::pss::*`.
+pub use crate::pkcs1v15::{
+    verify_sha1_pkcs1v15, verify_sha256_pkcs1v15, verify_sha384_pkcs1v15, verify_sha512_pkcs1v15,
+};
+pub use crate::pss::{verify_sha1_pss, verify_sha256_pss, verify_sha384_pss, verify_sha512_pss};
+
 /// Raise a signature to a public exponent using binary (square-and-multiply)
 /// modular exponentiation.
 ///
