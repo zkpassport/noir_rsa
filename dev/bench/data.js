@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789384856301,
+  "lastUpdate": 1789384860076,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -1170,6 +1170,60 @@ window.BENCHMARK_DATA = {
           {
             "name": "verify_sha256_pss_2048_const",
             "value": 3366,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "516db18a732d3426d9417444e5b6c0733d2b0d1c",
+          "message": "Merge pull request #13 from zkpassport/as/readme-update\n\nchore: Update README, expose a backward-compatible public API, and bump noir-bignum",
+          "timestamp": "2026-09-14T14:20:25+03:00",
+          "tree_id": "1af3b43cfdb4e53126219e6ad6d5b4def25f2ed8",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/516db18a732d3426d9417444e5b6c0733d2b0d1c"
+        },
+        "date": 1789384860062,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate",
+            "value": 2080,
+            "unit": "opcodes"
+          },
+          {
+            "name": "exponentiate_const",
+            "value": 2077,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048",
+            "value": 2750,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const",
+            "value": 2749,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048",
+            "value": 3675,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const",
+            "value": 3674,
             "unit": "opcodes"
           }
         ]
