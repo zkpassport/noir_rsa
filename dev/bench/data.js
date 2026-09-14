@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789377101578,
+  "lastUpdate": 1789377104753,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -846,6 +846,60 @@ window.BENCHMARK_DATA = {
           {
             "name": "verify_sha256_pss_2048_const",
             "value": 3433,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "58a1a73af6c52bf16b71a8147dfe153108318c41",
+          "message": "Merge pull request #10 from zkpassport/as/pss-refactoring-optimization-fix\n\nfix: correct sha384 pss out-of-bounds and generalize pss verification",
+          "timestamp": "2026-09-14T12:11:14+03:00",
+          "tree_id": "a3c6b2c04b0c3ece9aacba9708d95896d66262cc",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/58a1a73af6c52bf16b71a8147dfe153108318c41"
+        },
+        "date": 1789377104739,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate",
+            "value": 2140,
+            "unit": "opcodes"
+          },
+          {
+            "name": "exponentiate_const",
+            "value": 2137,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048",
+            "value": 2435,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const",
+            "value": 2432,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048",
+            "value": 3369,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const",
+            "value": 3366,
             "unit": "opcodes"
           }
         ]
