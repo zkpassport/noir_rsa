@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789376195944,
+  "lastUpdate": 1789377099884,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -214,6 +214,60 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/zkpassport/noir_rsa/commit/fba420dc1c33026df3376a2bd9599df3d9e7d1b2"
         },
         "date": 1789376191141,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate.json/main",
+            "value": 13625,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "exponentiate_const.json/main",
+            "value": 2702,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048.json/main",
+            "value": 14131,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const.json/main",
+            "value": 3208,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048.json/main",
+            "value": 14960,
+            "unit": "acir_opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const.json/main",
+            "value": 4037,
+            "unit": "acir_opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "58a1a73af6c52bf16b71a8147dfe153108318c41",
+          "message": "Merge pull request #10 from zkpassport/as/pss-refactoring-optimization-fix\n\nfix: correct sha384 pss out-of-bounds and generalize pss verification",
+          "timestamp": "2026-09-14T12:11:14+03:00",
+          "tree_id": "a3c6b2c04b0c3ece9aacba9708d95896d66262cc",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/58a1a73af6c52bf16b71a8147dfe153108318c41"
+        },
+        "date": 1789377099346,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
