@@ -90,6 +90,9 @@ pub fn verify_sha1_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     exponent: u32,
 ) -> bool {
     let exponentiated = exponentiate_signature(sig, exponent);
+    // Must stay `to_le_bytes` (safe), not `to_le_bytes_unsafe`: it validates sig^e is
+    // canonical in [0, n) before the padding checks. Switching to the unsafe variant
+    // would let a prover pass a non-canonical sig^e and is a soundness hole.
     let padded_sha1_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
     compare_signature_sha1(padded_sha1_hash_bytes, msg_hash)
 }
@@ -107,6 +110,9 @@ pub fn verify_sha256_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     exponent: u32,
 ) -> bool {
     let exponentiated = exponentiate_signature(sig, exponent);
+    // Must stay `to_le_bytes` (safe), not `to_le_bytes_unsafe`: it validates sig^e is
+    // canonical in [0, n) before the padding checks. Switching to the unsafe variant
+    // would let a prover pass a non-canonical sig^e and is a soundness hole.
     let padded_sha256_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
     compare_signature_sha256(padded_sha256_hash_bytes, msg_hash)
 }
@@ -125,6 +131,9 @@ pub fn verify_sha384_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     exponent: u32,
 ) -> bool {
     let exponentiated = exponentiate_signature(sig, exponent);
+    // Must stay `to_le_bytes` (safe), not `to_le_bytes_unsafe`: it validates sig^e is
+    // canonical in [0, n) before the padding checks. Switching to the unsafe variant
+    // would let a prover pass a non-canonical sig^e and is a soundness hole.
     let padded_sha384_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
     compare_signature_sha384(padded_sha384_hash_bytes, msg_hash)
 }
@@ -143,6 +152,9 @@ pub fn verify_sha512_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     exponent: u32,
 ) -> bool {
     let exponentiated = exponentiate_signature(sig, exponent);
+    // Must stay `to_le_bytes` (safe), not `to_le_bytes_unsafe`: it validates sig^e is
+    // canonical in [0, n) before the padding checks. Switching to the unsafe variant
+    // would let a prover pass a non-canonical sig^e and is a soundness hole.
     let padded_sha512_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
     compare_signature_sha512(padded_sha512_hash_bytes, msg_hash)
 }
