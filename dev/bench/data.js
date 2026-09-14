@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789376192894,
+  "lastUpdate": 1789376195944,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -674,6 +674,60 @@ window.BENCHMARK_DATA = {
           {
             "name": "verify_sha256_pkcs1v15_2048_const",
             "value": 2454,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048",
+            "value": 3436,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const",
+            "value": 3433,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fba420dc1c33026df3376a2bd9599df3d9e7d1b2",
+          "message": "Merge pull request #16 from zkpassport/as/pkcs1v15-refactoring-optimization\n\nchore: refactor and simplify pkcs1v15 verification",
+          "timestamp": "2026-09-14T11:56:04+03:00",
+          "tree_id": "55ffc952b5f78d7bc27f0ff607d799bb9f5d129b",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/fba420dc1c33026df3376a2bd9599df3d9e7d1b2"
+        },
+        "date": 1789376195933,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate",
+            "value": 2140,
+            "unit": "opcodes"
+          },
+          {
+            "name": "exponentiate_const",
+            "value": 2137,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048",
+            "value": 2435,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const",
+            "value": 2432,
             "unit": "opcodes"
           },
           {
