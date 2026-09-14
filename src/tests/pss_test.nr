@@ -699,3 +699,83 @@ fn test_verify_sha256_pss_2048_salt_len_64() {
 
     assert(verify_sha256_pss(sha256_hash, signature, 65537, 64));
 }
+
+// Regression test for the SHA-384 out-of-bounds bug: with HASH_LEN = 48 and a
+// salt of 64 bytes, M' spans 8 + 48 + 64 = 120 bytes and the salt loop writes up
+// to index 119. The old m_prime buffer was [u8; 104], so this case indexed past
+// its end. Exercises the largest supported salt (MAX_SALT_LEN) for SHA-384.
+#[test]
+fn test_verify_sha384_pss_2048_salt_len_64() {
+    let sha384_hash: [u8; 48] = sha384::sha384_var(BoundedVec::from_parts(
+        "Hello World! This is Noir-RSA".as_bytes(),
+        29,
+    ));
+    let params: Params2048 = BigNumParams::new(
+        false,
+        [
+            0x21a4d8b9514101fa2ee17e07a71df5,
+            0x6fb289f941555ed5ef1f9fd614e46b,
+            0xcac60cc864fd6895ec3ce241148f5f,
+            0xeb23265767677ca203e52a88bd3cb5,
+            0x4f61b4845114ffc036653c3579f89e,
+            0x6c3bc0e8979dbcace394d8be6cb9d7,
+            0x67842a78ef819597771a8f3edc79e6,
+            0xe8fc64da9a75a8f59b67d2de00a843,
+            0x3c395d9f3c3c9f973fc73b030a9938,
+            0x220cacf162f2e6accc16c342ca339,
+            0xcde192ced7fd60e567d675c8a608b,
+            0xaa1d8fb0766990e0c37c6dc6e2e896,
+            0x823fc33e56b85473b91c988957650d,
+            0x4a49ee237c039b56663d975cc5d409,
+            0x79f8c4b6fc046e2bcbd0247f501c2,
+            0x9cc4cb1f92f302ad8c4323681fa17d,
+            0xb0d5e3805cb791a1b2f78910112fdd,
+            0xe8,
+        ],
+        [
+            0x77ebdfeb81e78c86dcd31236cf9108,
+            0x9a7ea8db38dcf54f2233a8cff97b19,
+            0x1909c2abb8b5fa57635fe255024233,
+            0xc44b159b5067c3face418f1bf8d205,
+            0x44e3d04ed352e2c22a7dde425c751e,
+            0xf50b99900ad33ad4efef9fabd70841,
+            0x5bcde911a0c6cd82b8a2bd1d83118f,
+            0xef19810f513268a7f82bf0a86a759a,
+            0x4b9b8c155699c6e7eaffedad86c229,
+            0xcef690448254d589f98ac47d9a7058,
+            0x91efee23187f72225965f17ffa2963,
+            0x82e785358733bc27dfbfec6a476a53,
+            0x3b3d4a2f43a88d9eaeb7ca7ac8b154,
+            0x35ffd752548383c52d950794f84645,
+            0xd11483a83839530d4a786f9ec0b67d,
+            0xe954e4ad818098a877d3520b346487,
+            0x3a4acff2be216d36a1df2f0c834190,
+            0x4669,
+        ],
+    );
+    let signature: RBN2048 = RuntimeBigNum {
+        params,
+        limbs: [
+            0x2ca2a2272c7d1803e7d7507efcf5da,
+            0xadaa2e041db25df7ae922a35606cb3,
+            0x4bb45afe681c20e8c3a7cb795d2761,
+            0x5febe0026feabb145e5013b1610d5d,
+            0xb9c08a4066b5c1ba4acf895132760d,
+            0x2cbd7d3afc3dae066b440e07347db1,
+            0xe429b8ca20b05642981ba09346889b,
+            0xf6a342ee1c858cb889bf4f9d389852,
+            0x40558bb8a7152512e871c06a1f9479,
+            0x07288885132093aad7d2725f1041cd,
+            0x8f8574fd0ce30d8ccd913f059deb8c,
+            0x2265c90599ab52df6aa71efa09b046,
+            0x5a980762f5d6ed033d9010332ef529,
+            0x16a0a9de71339f9158cf6d44181b7b,
+            0x91009e0a6192d08015c551f09de6c8,
+            0x6074f3b126a91b8aad66cf3f0c715d,
+            0xaafd942e549933daeb8f6abf1baf63,
+            0x56,
+        ],
+    };
+
+    assert(verify_sha384_pss(sha384_hash, signature, 65537, 64));
+}

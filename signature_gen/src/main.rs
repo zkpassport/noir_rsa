@@ -32,10 +32,14 @@ fn format_limbs_as_toml_value(limbs: &Vec<BigUint>) -> Vec<Value> {
         .collect()
 }
 
-fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u32, pss: bool, salt_len: usize) {
-    let mut hasher = Sha256::new();
-    hasher.update(msg.as_bytes());
-    let hashed_message = hasher.finalize();
+fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u32, pss: bool, salt_len: usize, hash: &str) {
+    let hashed_message: Vec<u8> = match hash {
+        "sha256" => Sha256::digest(msg.as_bytes()).to_vec(),
+        "sha384" => Sha384::digest(msg.as_bytes()).to_vec(),
+        "sha512" => Sha512::digest(msg.as_bytes()).to_vec(),
+        _ => panic!("unsupported hash: {} (use sha256, sha384 or sha512)", hash),
+    };
+    let hash_len = hashed_message.len();
 
     let hashed_as_bytes = hashed_message
         .iter()
@@ -51,9 +55,18 @@ fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u3
     let pub_key: RsaPublicKey = priv_key.clone().into();
 
     let sig_bytes = if pss {
-        let mut signing_key = rsa::pss::BlindedSigningKey::<Sha256>::new_with_salt_len(priv_key, salt_len);
-        let sig = signing_key.sign_with_rng(&mut rng, msg.as_bytes());
-        sig.to_vec()
+        match hash {
+            "sha256" => rsa::pss::BlindedSigningKey::<Sha256>::new_with_salt_len(priv_key, salt_len)
+                .sign_with_rng(&mut rng, msg.as_bytes())
+                .to_vec(),
+            "sha384" => rsa::pss::BlindedSigningKey::<Sha384>::new_with_salt_len(priv_key, salt_len)
+                .sign_with_rng(&mut rng, msg.as_bytes())
+                .to_vec(),
+            "sha512" => rsa::pss::BlindedSigningKey::<Sha512>::new_with_salt_len(priv_key, salt_len)
+                .sign_with_rng(&mut rng, msg.as_bytes())
+                .to_vec(),
+            _ => panic!("unsupported hash: {} (use sha256, sha384 or sha512)", hash),
+        }
     } else {
         let signing_key = rsa::pkcs1v15::SigningKey::<Sha256>::new(priv_key);
         signing_key.sign(msg.as_bytes()).to_vec()
@@ -86,7 +99,7 @@ fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u3
             Value::Array(format_limbs_as_toml_value(&sig_limbs))
         );
     } else {
-        println!("let hash: [u8; 32] = [{}];", hashed_as_bytes);
+        println!("let hash: [u8; {}] = [{}];", hash_len, hashed_as_bytes);
         println!(
             "let params: BigNumParams<18, 2048> = BigNumParams::new(\n\tfalse,\n\t[{}],\n\t[{}]\n);",
             format_limbs_as_hex(&modulus_limbs),
@@ -254,6 +267,13 @@ fn main() {
                         .takes_value(true)
                         .help("Salt length for RSA PSS (only used with --pss)")
                         .default_value("32"),
+                )
+                .arg(
+                    Arg::with_name("hash")
+                        .long("hash")
+                        .takes_value(true)
+                        .help("Hash function for RSA PSS: sha256, sha384 or sha512 (only used with --pss)")
+                        .default_value("sha256"),
                 ),
         )
         .subcommand(
@@ -304,11 +324,12 @@ fn main() {
             );
             let pss = sub_m.is_present("pss");
             let salt_len: usize = sub_m.value_of("salt_len").unwrap().parse().unwrap();
+            let hash = sub_m.value_of("hash").unwrap();
 
             if b == 1024 {
                 generate_1024_bit_signature_parameters(msg, as_toml, e);
             } else {
-                generate_2048_bit_signature_parameters(msg, as_toml, e, pss, salt_len);
+                generate_2048_bit_signature_parameters(msg, as_toml, e, pss, salt_len, hash);
             }
         }
         ("params", Some(sub_m)) => {
