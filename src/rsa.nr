@@ -30,6 +30,12 @@ pub(crate) fn exponentiate_signature<let NumLimbs: u32, let ModBits: u32>(
     // of doing a division every iteration.
     let bits: [bool; 17] = (exponent as Field).to_le_bits::<17>();
 
+    // The exponent must be odd: RSA requires gcd(e, phi(N)) = 1, and for N = p*q
+    // with odd primes that forces e odd. bits[0] is the least-significant bit, so
+    // this rejects structurally-invalid even exponents. (Spec conformance per
+    // RFC 8017; binding e to a trusted key already yields odd e in practice.)
+    assert(bits[0], "Exponent must be odd");
+
     // Binary exponentiation (square-and-multiply algorithm)
     let mut result = RuntimeBigNum::one(sig.params);
     let mut base = sig;
