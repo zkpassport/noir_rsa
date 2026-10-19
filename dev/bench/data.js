@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792423045295,
+  "lastUpdate": 1792423046777,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -869,6 +869,60 @@ window.BENCHMARK_DATA = {
           {
             "name": "verify_sha256_pss_2048_const.json/main",
             "value": 58412,
+            "unit": "circuit_size"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "02e5038fe91565a668607fafbbec4d3664c77d43",
+          "message": "Merge pull request #18 from zkpassport/as/pss-underconstrained\n\nfeat: harden PSS decoding and exponent validation",
+          "timestamp": "2026-10-19T18:16:52+03:00",
+          "tree_id": "9467d5a37b492af3a65af4aa00f9d32095fccedf",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/02e5038fe91565a668607fafbbec4d3664c77d43"
+        },
+        "date": 1792423046764,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate.json/main",
+            "value": 50376,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "exponentiate_const.json/main",
+            "value": 19526,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048.json/main",
+            "value": 51128,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const.json/main",
+            "value": 20240,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "verify_sha256_pss_2048.json/main",
+            "value": 89304,
+            "unit": "circuit_size"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const.json/main",
+            "value": 58423,
             "unit": "circuit_size"
           }
         ]
