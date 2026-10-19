@@ -23,7 +23,7 @@ This library uses [noir-bignum](https://github.com/zkpassport/noir-bignum) as a 
 ### Key Sizes and Exponents
 
 - **Generic modulus bit length**, parameterized by the `NumLimbs` and `ModBits` generics, covering the standard RSA key sizes. Convenience types are provided for 1024, 1025, 1964, 2048, and 4096-bit keys (see `src/types.nr`). Note that this is bounded by noir-bignum: its modular multiplication is no longer fully complete for very large moduli (around 8000 bits), so such sizes are not supported.
-- **Any public exponent in the range `[2, 2^17 - 1]`**, which covers the exponents used in practice (e.g. 3 and 65537).
+- **Any odd public exponent in the range `[3, 2^17 - 1]`**, which covers the exponents used in practice (e.g. 3 and 65537). Even exponents are rejected, since RSA requires `e` to be odd.
 
 ## Noir version compatibility
 
@@ -115,7 +115,7 @@ use noir_rsa::rsa::{
 ### Input Assumptions
 
 - **The message hash must be computed by the caller.** The verification functions take the digest, not the message, and each function fixes the hash algorithm (e.g. `verify_sha256_*` expects a SHA-256 digest). For PKCS#1 v1.5 the hash identity is further pinned by the ASN.1 DigestInfo prefix, so passing, say, a SHA-256 digest to the SHA-512 verifier fails.
-- **The public exponent is constrained to `[2, 2^17 - 1]`.** Exponent `1` is rejected (it would make the signature equal to the encoded message and accept trivially), and exponents `>= 2^17` fail a range check. The standard exponents `3` and `65537` are within range.
+- **The public exponent is constrained to odd values in `[3, 2^17 - 1]`.** Exponent `1` is rejected (it would make the signature equal to the encoded message and accept trivially), even exponents are rejected (RSA requires an odd `e`), and exponents `>= 2^17` fail a range check. The standard exponents `3` and `65537` are within range.
 - **`signature` must be a valid field element.** Build the `RuntimeBigNum` with the correct `BigNumParams` (modulus and Barrett reduction parameter). If the signature was not already validated, either call `validate_in_field` on it, or construct it with noir-bignum's `from_be_bytes` / `from_le_bytes`, which range-check the value into the field. Skipping this on an unchecked, byte-imported value can let an out-of-range limb encoding through.
 - **The modulus (public key) must NOT be a free private witness.** This is a soundness requirement, not a nicety. The library verifies the signature against whatever `BigNumParams` modulus you hand it, and does nothing to pin that modulus down. If `params` is supplied as a private, prover-controlled input, verification is **unsound**: an attacker can choose a modulus for which they can produce a valid signature over any message (e.g. one whose factorization they know, or one crafted so `sig^e mod n` equals the target encoded message) and thereby prove a "valid signature" for arbitrary data. Always bind the modulus to something the verifier trusts, e.g. expose it as a public input, hash it into the public inputs, or check it against a trusted key registry.
 - **PSS `salt_len` is a caller input** and must equal the salt length used by the signer, and be at most `MAX_SALT_LEN` (64 bytes). A mismatched salt length fails verification.
@@ -135,14 +135,14 @@ nargo test
 
 ### PKCS#1 v1.5
 
-1. **Validate the exponent**: constrain `e` to `[2, 2^17 - 1]`, which rejects `e = 1` (it would accept the signature as the encoded message) and exponents that are out of range.
+1. **Validate the exponent**: constrain `e` to odd values in `[3, 2^17 - 1]`, which rejects `e = 1` (it would accept the signature as the encoded message), even exponents (RSA requires an odd `e`), and exponents that are out of range.
 2. **Exponentiate**: recover the encoded message `EM = sig^e mod n`.
 3. **Convert** `EM` to bytes.
 4. **Compare against the expected structure** `0x00 || 0x01 || PS(0xFF..) || 0x00 || DigestInfo || H`: check the message-hash bytes, the ASN.1 DigestInfo prefix, the `0x00` separator, and the `0xFF` padding string.
 
 ### PSS
 
-1. **Validate the exponent**: constrain `e` to `[2, 2^17 - 1]`, which rejects `e = 1` and exponents that are out of range.
+1. **Validate the exponent**: constrain `e` to odd values in `[3, 2^17 - 1]`, which rejects `e = 1`, even exponents (RSA requires an odd `e`), and exponents that are out of range.
 2. **Exponentiate**: recover the encoded message `EM = sig^e mod n`.
 3. **Parse** `EM = maskedDB || H || 0xBC`; verify the trailing `0xBC` and the leftmost-zero-bits requirement.
 4. **Bound the salt**: check `salt_len <= MAX_SALT_LEN` and `emLen >= hLen + salt_len + 2`.

@@ -88,6 +88,14 @@ fn test_exponentiate_signature_e65537() {
     assert(exponentiate_signature(base, 65537) == expected);
 }
 
+// Even exponents are structurally invalid for RSA (e must be odd) and are
+// rejected at the gate, regardless of the signature value.
+#[test(should_fail_with = "Exponent must be odd")]
+fn test_exponentiate_signature_rejects_even() {
+    let (_, base) = params_and_base();
+    let _ = exponentiate_signature(base, 2);
+}
+
 // e = 45345 (a random exponent in [2, 2^17), covers an arbitrary bit pattern)
 #[test]
 fn test_exponentiate_signature_random() {
