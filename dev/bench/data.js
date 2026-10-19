@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792423055140,
+  "lastUpdate": 1792423058817,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -1494,6 +1494,60 @@ window.BENCHMARK_DATA = {
           {
             "name": "verify_sha256_pss_2048_const",
             "value": 3680,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9aa85bd7228bd57e835e9add0d3edd3b19548310",
+          "message": "Merge pull request #19 from zkpassport/as/bump-libs-2\n\nchore: Bump workflows and bignum version",
+          "timestamp": "2026-10-19T18:17:06+03:00",
+          "tree_id": "467f6755c1a5186b5c0440e1fe5b8b5a564877c2",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/9aa85bd7228bd57e835e9add0d3edd3b19548310"
+        },
+        "date": 1792423058688,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate",
+            "value": 2087,
+            "unit": "opcodes"
+          },
+          {
+            "name": "exponentiate_const",
+            "value": 2077,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048",
+            "value": 2757,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const",
+            "value": 2749,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048",
+            "value": 3696,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const",
+            "value": 3688,
             "unit": "opcodes"
           }
         ]
