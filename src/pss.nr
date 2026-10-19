@@ -42,6 +42,14 @@ fn pss_split<let NumLimbs: u32, let ModBits: u32, let HASH_LEN: u32>(
     // byte to skip. offset == 0 for all standard sizes (2048/3072/4096).
     let offset: u32 = key_len - em_len;
 
+    // RFC 8017 I2OSP: the EM integer is < 2^emBits. For 8k+1-bit moduli (offset
+    // == 1) that leading byte sits entirely above emBits and must be zero;
+    // otherwise it is sliced off below and never validated. offset is 0 or 1 for
+    // every supported ModBits, so em[0] is the only possibly-non-zero high byte.
+    if offset != 0 {
+        assert_eq(em[0], 0);
+    }
+
     let masked_db: [u8; (ModBits + 7) / 8 - HASH_LEN - 1] =
         get_array_slice(em, offset, db_mask_len + offset);
     let h: [u8; HASH_LEN] = get_array_slice(em, db_mask_len + offset, em.len() - 1);
