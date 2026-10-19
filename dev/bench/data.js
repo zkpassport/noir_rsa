@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792423046777,
+  "lastUpdate": 1792423051472,
   "repoUrl": "https://github.com/zkpassport/noir_rsa",
   "entries": {
     "ACIR Opcodes": [
@@ -1332,6 +1332,60 @@ window.BENCHMARK_DATA = {
           {
             "name": "verify_sha256_pss_2048_const",
             "value": 3674,
+            "unit": "opcodes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "75146596+Sarkoxed@users.noreply.github.com",
+            "name": "Sarkoxed",
+            "username": "Sarkoxed"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "02e5038fe91565a668607fafbbec4d3664c77d43",
+          "message": "Merge pull request #18 from zkpassport/as/pss-underconstrained\n\nfeat: harden PSS decoding and exponent validation",
+          "timestamp": "2026-10-19T18:16:52+03:00",
+          "tree_id": "9467d5a37b492af3a65af4aa00f9d32095fccedf",
+          "url": "https://github.com/zkpassport/noir_rsa/commit/02e5038fe91565a668607fafbbec4d3664c77d43"
+        },
+        "date": 1792423051459,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "exponentiate",
+            "value": 2087,
+            "unit": "opcodes"
+          },
+          {
+            "name": "exponentiate_const",
+            "value": 2077,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048",
+            "value": 2757,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pkcs1v15_2048_const",
+            "value": 2749,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048",
+            "value": 3688,
+            "unit": "opcodes"
+          },
+          {
+            "name": "verify_sha256_pss_2048_const",
+            "value": 3680,
             "unit": "opcodes"
           }
         ]
