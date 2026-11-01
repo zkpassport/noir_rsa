@@ -27,7 +27,7 @@ This library uses [noir-bignum](https://github.com/zkpassport/noir-bignum) as a 
 
 ## Noir version compatibility
 
-This library requires Noir `v1.0.0-beta.21` or later. Earlier releases will not build/pass the test suite.
+This library requires Noir `v1.0.0` or later.
 
 ## Installation
 
