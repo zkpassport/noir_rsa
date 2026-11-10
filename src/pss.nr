@@ -35,7 +35,7 @@ fn pss_split<let NumLimbs: u32, let ModBits: u32, let HASH_LEN: u32>(
     let h_len: u32 = HASH_LEN;
 
     // EM must end with 0xBC
-    assert_eq(em[em.len() - 1], 0xBC);
+    assert_eq(em[em.len() - 1], 0xBC, "PSS: trailer byte is not 0xBC");
 
     let db_mask_len: u32 = em_len - h_len - 1;
     // For non-multiple-of-8 moduli, em_len < key_len and EM has a leading zero
@@ -47,7 +47,7 @@ fn pss_split<let NumLimbs: u32, let ModBits: u32, let HASH_LEN: u32>(
     // otherwise it is sliced off below and never validated. offset is 0 or 1 for
     // every supported ModBits, so em[0] is the only possibly-non-zero high byte.
     if offset != 0 {
-        assert_eq(em[0], 0);
+        assert_eq(em[0], 0, "PSS: leading byte is not 0x00");
     }
 
     let masked_db: [u8; (ModBits + 7) / 8 - HASH_LEN - 1] =
@@ -56,7 +56,11 @@ fn pss_split<let NumLimbs: u32, let ModBits: u32, let HASH_LEN: u32>(
 
     // The leftmost (8 * em_len - em_bits) bits of maskedDB must be zero
     let bits_to_mask: u32 = 8 - (8 * em_len - em_bits);
-    assert_eq(masked_db[0] as u32 >> bits_to_mask, 0);
+    assert_eq(
+        masked_db[0] as u32 >> bits_to_mask,
+        0,
+        "PSS: leftmost bits of maskedDB are not zero",
+    );
 
     (masked_db, h)
 }
@@ -76,8 +80,8 @@ fn pss_recover_mprime<let ModBits: u32, let HASH_LEN: u32>(
 
     // The salt must fit (emLen >= hLen + saltLen + 2) and stay within the buffer.
     // Both guard the index arithmetic below against u32 underflow.
-    assert(em_len >= h_len + salt_len + 2);
-    assert(salt_len <= MAX_SALT_LEN);
+    assert(em_len >= h_len + salt_len + 2, "PSS: salt_len too large for the modulus");
+    assert(salt_len <= MAX_SALT_LEN, "PSS: salt_len exceeds MAX_SALT_LEN");
 
     // DB = maskedDB XOR dbMask
     let mut db = [0 as u8; (ModBits + 7) / 8 - HASH_LEN - 1];
@@ -95,10 +99,10 @@ fn pss_recover_mprime<let ModBits: u32, let HASH_LEN: u32>(
     // DB = PS (0x00 run) || 0x01 || salt. Check the zero run and the separator.
     for i in 0..(ModBits + 7) / 8 - HASH_LEN - 2 {
         if i < em_len - h_len - salt_len - 2 {
-            assert_eq(db[i], 0);
+            assert_eq(db[i], 0, "PSS: PS padding byte is not 0x00");
         }
     }
-    assert_eq(db[em_len - h_len - salt_len - 2], 1);
+    assert_eq(db[em_len - h_len - salt_len - 2], 1, "PSS: missing 0x01 separator");
 
     // The salt is the last salt_len bytes of DB (whose real length is em_len - h_len - 1)
     let db_len: u32 = em_len - h_len - 1;
@@ -120,7 +124,10 @@ fn pss_recover_mprime<let ModBits: u32, let HASH_LEN: u32>(
 
 /**
  * @brief Verify an RSA-PSS signature over a SHA-1 message hash.
- * @note The exponent `e` can be any positive integer (commonly 3 or 65537 are used for RSA).
+ * @note The exponent `e` must be odd and in [3, 2^17 - 1] (commonly 3 or 65537).
+ * @return `true` if the recomputed hash H' equals the hash H recovered from the signature, `false`
+ *         otherwise. A malformed encoded message (trailer, leading bits, padding, separator or
+ *         salt length) fails a constraint inside this function instead of returning `false`.
  */
 pub fn verify_sha1_pss<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; SHA1_HASH_LEN],
@@ -138,7 +145,10 @@ pub fn verify_sha1_pss<let NumLimbs: u32, let ModBits: u32>(
 
 /**
  * @brief Verify an RSA-PSS signature over a SHA-256 message hash.
- * @note The exponent `e` can be any positive integer (commonly 3 or 65537 are used for RSA).
+ * @note The exponent `e` must be odd and in [3, 2^17 - 1] (commonly 3 or 65537).
+ * @return `true` if the recomputed hash H' equals the hash H recovered from the signature, `false`
+ *         otherwise. A malformed encoded message (trailer, leading bits, padding, separator or
+ *         salt length) fails a constraint inside this function instead of returning `false`.
  */
 pub fn verify_sha256_pss<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; SHA256_HASH_LEN],
@@ -156,7 +166,10 @@ pub fn verify_sha256_pss<let NumLimbs: u32, let ModBits: u32>(
 
 /**
  * @brief Verify an RSA-PSS signature over a SHA-384 message hash.
- * @note The exponent `e` can be any positive integer (commonly 3 or 65537 are used for RSA).
+ * @note The exponent `e` must be odd and in [3, 2^17 - 1] (commonly 3 or 65537).
+ * @return `true` if the recomputed hash H' equals the hash H recovered from the signature, `false`
+ *         otherwise. A malformed encoded message (trailer, leading bits, padding, separator or
+ *         salt length) fails a constraint inside this function instead of returning `false`.
  */
 pub fn verify_sha384_pss<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; SHA384_HASH_LEN],
@@ -174,7 +187,10 @@ pub fn verify_sha384_pss<let NumLimbs: u32, let ModBits: u32>(
 
 /**
  * @brief Verify an RSA-PSS signature over a SHA-512 message hash.
- * @note The exponent `e` can be any positive integer (commonly 3 or 65537 are used for RSA).
+ * @note The exponent `e` must be odd and in [3, 2^17 - 1] (commonly 3 or 65537).
+ * @return `true` if the recomputed hash H' equals the hash H recovered from the signature, `false`
+ *         otherwise. A malformed encoded message (trailer, leading bits, padding, separator or
+ *         salt length) fails a constraint inside this function instead of returning `false`.
  */
 pub fn verify_sha512_pss<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; SHA512_HASH_LEN],
@@ -196,7 +212,7 @@ mod tests {
     // RFC 8017 §9.1.2 step 8: only the leftmost (8*emLen - emBits) bits of DB[0]
     // may be cleared. A low bit set in DB[0] is part of PS and must be rejected;
     // the old `db[0] = 0` wiped the whole byte and let this through.
-    #[test(should_fail)]
+    #[test(should_fail_with = "PSS: PS padding byte is not 0x00")]
     fn pss_step8_rejects_low_bit_of_db0() {
         let mut masked_db = [0 as u8; (2048 + 7) / 8 - 32 - 1];
         masked_db[256 - 32 - 32 - 2] = 1; // 0x01 separator

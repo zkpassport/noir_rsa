@@ -12,20 +12,23 @@ fn compare_signature<let N: u32, let HASH_LEN: u32, let HASH_PREFIX_LEN: u32>(
 ) -> bool {
     for i in 0..HASH_LEN {
         // Padded hash is reversed
-        assert(padded_hash[HASH_LEN - 1 - i] == msg_hash[i]);
+        assert(padded_hash[HASH_LEN - 1 - i] == msg_hash[i], "PKCS#1 v1.5: message hash mismatch");
     }
 
     for i in HASH_LEN..(HASH_LEN + HASH_PREFIX_LEN) {
-        assert(hash_prefix[i - HASH_LEN] == padded_hash[i])
+        assert(
+            hash_prefix[i - HASH_LEN] == padded_hash[i],
+            "PKCS#1 v1.5: DigestInfo prefix mismatch",
+        )
     }
 
-    assert(padded_hash[HASH_LEN + HASH_PREFIX_LEN] == 0); // separator
+    assert(padded_hash[HASH_LEN + HASH_PREFIX_LEN] == 0, "PKCS#1 v1.5: missing 0x00 separator");
 
     for i in (HASH_LEN + HASH_PREFIX_LEN + 1)..N - 2 {
-        assert(padded_hash[i] == 0xff); // PS
+        assert(padded_hash[i] == 0xff, "PKCS#1 v1.5: PS padding byte is not 0xFF");
     }
-    assert(padded_hash[N - 2] == 0x01); // block type
-    assert(padded_hash[N - 1] == 0x00); // EM leading byte
+    assert(padded_hash[N - 2] == 0x01, "PKCS#1 v1.5: block type is not 0x01");
+    assert(padded_hash[N - 1] == 0x00, "PKCS#1 v1.5: leading byte is not 0x00");
 
     true
 }
@@ -81,8 +84,9 @@ fn compare_signature_sha512<let N: u32>(
  *
  * @param msg_hash The SHA-1 hash of the message being verified
  * @param sig The RSA signature
- * @param exponent The public exponent (any positive integer)
- * @return True if the signature is valid, false otherwise
+ * @param exponent The public exponent (odd, in [3, 2^17 - 1])
+ * @return `true` if the signature is valid. An invalid signature never returns `false`:
+ *         it fails a constraint inside this function, with a message naming the failed padding check.
  */
 pub fn verify_sha1_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; 20],
@@ -99,10 +103,12 @@ pub fn verify_sha1_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
 
 /**
  * @brief Verify an RSA signature generated via the pkcs1v15 signature scheme with SHA-256
- * @note The `exponent` can be any positive integer (commonly 3 or 65537 are used for RSA)
+ * @note The `exponent` must be odd and in [3, 2^17 - 1] (commonly 3 or 65537 are used for RSA)
  * Rough cost: 2,048 bit RSA: 26,888 gates per verification
  *             1,024 bit RSA: 11,983 gates per verification
  * A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
+ * @return `true` if the signature is valid. An invalid signature never returns `false`:
+ *         it fails a constraint inside this function, with a message naming the failed padding check.
  **/
 pub fn verify_sha256_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; 32],
@@ -122,8 +128,9 @@ pub fn verify_sha256_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
  *
  * @param msg_hash The SHA-384 hash of the message being verified
  * @param sig The RSA signature
- * @param exponent The public exponent (any positive integer)
- * @return True if the signature is valid, false otherwise
+ * @param exponent The public exponent (odd, in [3, 2^17 - 1])
+ * @return `true` if the signature is valid. An invalid signature never returns `false`:
+ *         it fails a constraint inside this function, with a message naming the failed padding check.
  */
 pub fn verify_sha384_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; 48],
@@ -143,8 +150,9 @@ pub fn verify_sha384_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
  *
  * @param msg_hash The SHA-512 hash of the message being verified
  * @param sig The RSA signature
- * @param exponent The public exponent (any positive integer)
- * @return True if the signature is valid, false otherwise
+ * @param exponent The public exponent (odd, in [3, 2^17 - 1])
+ * @return `true` if the signature is valid. An invalid signature never returns `false`:
+ *         it fails a constraint inside this function, with a message naming the failed padding check.
  */
 pub fn verify_sha512_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     msg_hash: [u8; 64],
@@ -157,4 +165,63 @@ pub fn verify_sha512_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
     // would let a prover pass a non-canonical sig^e and is a soundness hole.
     let padded_sha512_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
     compare_signature_sha512(padded_sha512_hash_bytes, msg_hash)
+}
+
+mod tests {
+    use super::compare_signature;
+
+    // A well-formed little-endian EM for a 2-byte hash [0x11, 0x22] and a 2-byte
+    // DigestInfo prefix [0xAA, 0xBB]: hash, prefix, separator, PS, block type, leading byte.
+    global EM: [u8; 8] = [0x22, 0x11, 0xAA, 0xBB, 0x00, 0xFF, 0x01, 0x00];
+
+    fn check(em: [u8; 8]) {
+        let _ = compare_signature::<8, 2, 2>(em, [0x11, 0x22], [0xAA, 0xBB]);
+    }
+
+    #[test]
+    fn accepts_well_formed_em() {
+        check(EM);
+    }
+
+    #[test(should_fail_with = "PKCS#1 v1.5: message hash mismatch")]
+    fn rejects_bad_hash() {
+        let mut em = EM;
+        em[0] = 0;
+        check(em);
+    }
+
+    #[test(should_fail_with = "PKCS#1 v1.5: DigestInfo prefix mismatch")]
+    fn rejects_bad_prefix() {
+        let mut em = EM;
+        em[3] = 0;
+        check(em);
+    }
+
+    #[test(should_fail_with = "PKCS#1 v1.5: missing 0x00 separator")]
+    fn rejects_bad_separator() {
+        let mut em = EM;
+        em[4] = 0xFF;
+        check(em);
+    }
+
+    #[test(should_fail_with = "PKCS#1 v1.5: PS padding byte is not 0xFF")]
+    fn rejects_bad_padding() {
+        let mut em = EM;
+        em[5] = 0xFE;
+        check(em);
+    }
+
+    #[test(should_fail_with = "PKCS#1 v1.5: block type is not 0x01")]
+    fn rejects_bad_block_type() {
+        let mut em = EM;
+        em[6] = 0x02;
+        check(em);
+    }
+
+    #[test(should_fail_with = "PKCS#1 v1.5: leading byte is not 0x00")]
+    fn rejects_bad_leading_byte() {
+        let mut em = EM;
+        em[7] = 0x01;
+        check(em);
+    }
 }
