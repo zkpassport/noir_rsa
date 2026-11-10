@@ -12,13 +12,14 @@ pub use crate::pss::{verify_sha1_pss, verify_sha256_pss, verify_sha384_pss, veri
 /// Raise a signature to a public exponent using binary (square-and-multiply)
 /// modular exponentiation.
 ///
-/// The exponent is a runtime value, constrained to [2, 2^17 - 1]. That range
+/// The exponent is a runtime value, constrained to be odd and in [3, 2^17 - 1]. That range
 /// covers the public exponents RSA certificates use in practice (e.g. 3 and 65537).
 pub(crate) fn exponentiate_signature<let NumLimbs: u32, let ModBits: u32>(
     sig: RuntimeBigNum<NumLimbs, ModBits>,
     exponent: u32,
 ) -> RuntimeBigNum<NumLimbs, ModBits> {
-    // Constrain the exponent to [2, 2^17 - 1].
+    // Range check: exponent - 2 and exponent both fit in 17 bits. Together with the
+    // odd-bit check below, this constrains the exponent to be odd and in [3, 2^17 - 1].
     // Lower bound: for exponent < 2 the subtraction wraps modulo the field prime,
     // producing a large value that fails the 17-bit range check.
     (exponent as Field - 2).assert_max_bit_size::<17>();

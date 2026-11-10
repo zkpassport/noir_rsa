@@ -84,7 +84,7 @@ fn compare_signature_sha512<let N: u32>(
  *
  * @param msg_hash The SHA-1 hash of the message being verified
  * @param sig The RSA signature
- * @param exponent The public exponent (any positive integer)
+ * @param exponent The public exponent (odd, in [3, 2^17 - 1])
  * @return `true` if the signature is valid. An invalid signature never returns `false`:
  *         it fails a constraint inside this function, with a message naming the failed encoded-message check.
  */
@@ -103,7 +103,7 @@ pub fn verify_sha1_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
 
 /**
  * @brief Verify an RSA signature generated via the pkcs1v15 signature scheme with SHA-256
- * @note The `exponent` can be any positive integer (commonly 3 or 65537 are used for RSA)
+ * @note The `exponent` must be odd and in [3, 2^17 - 1] (commonly 3 or 65537 are used for RSA)
  * Rough cost: 2,048 bit RSA: 26,888 gates per verification
  *             1,024 bit RSA: 11,983 gates per verification
  * A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
@@ -128,7 +128,7 @@ pub fn verify_sha256_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
  *
  * @param msg_hash The SHA-384 hash of the message being verified
  * @param sig The RSA signature
- * @param exponent The public exponent (any positive integer)
+ * @param exponent The public exponent (odd, in [3, 2^17 - 1])
  * @return `true` if the signature is valid. An invalid signature never returns `false`:
  *         it fails a constraint inside this function, with a message naming the failed encoded-message check.
  */
@@ -150,7 +150,7 @@ pub fn verify_sha384_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
  *
  * @param msg_hash The SHA-512 hash of the message being verified
  * @param sig The RSA signature
- * @param exponent The public exponent (any positive integer)
+ * @param exponent The public exponent (odd, in [3, 2^17 - 1])
  * @return `true` if the signature is valid. An invalid signature never returns `false`:
  *         it fails a constraint inside this function, with a message naming the failed encoded-message check.
  */

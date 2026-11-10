@@ -124,7 +124,7 @@ fn pss_recover_mprime<let ModBits: u32, let HASH_LEN: u32>(
 
 /**
  * @brief Verify an RSA-PSS signature over a SHA-1 message hash.
- * @note The exponent `e` can be any positive integer (commonly 3 or 65537 are used for RSA).
+ * @note The exponent `e` must be odd and in [3, 2^17 - 1] (commonly 3 or 65537).
  * @return `true` if the recomputed hash H' equals the hash H recovered from the signature, `false`
  *         otherwise. A malformed encoded message (trailer, leading bits, padding, separator or
  *         salt length) fails a constraint inside this function instead of returning `false`.
@@ -145,7 +145,7 @@ pub fn verify_sha1_pss<let NumLimbs: u32, let ModBits: u32>(
 
 /**
  * @brief Verify an RSA-PSS signature over a SHA-256 message hash.
- * @note The exponent `e` can be any positive integer (commonly 3 or 65537 are used for RSA).
+ * @note The exponent `e` must be odd and in [3, 2^17 - 1] (commonly 3 or 65537).
  * @return `true` if the recomputed hash H' equals the hash H recovered from the signature, `false`
  *         otherwise. A malformed encoded message (trailer, leading bits, padding, separator or
  *         salt length) fails a constraint inside this function instead of returning `false`.
@@ -166,7 +166,7 @@ pub fn verify_sha256_pss<let NumLimbs: u32, let ModBits: u32>(
 
 /**
  * @brief Verify an RSA-PSS signature over a SHA-384 message hash.
- * @note The exponent `e` can be any positive integer (commonly 3 or 65537 are used for RSA).
+ * @note The exponent `e` must be odd and in [3, 2^17 - 1] (commonly 3 or 65537).
  * @return `true` if the recomputed hash H' equals the hash H recovered from the signature, `false`
  *         otherwise. A malformed encoded message (trailer, leading bits, padding, separator or
  *         salt length) fails a constraint inside this function instead of returning `false`.
@@ -187,7 +187,7 @@ pub fn verify_sha384_pss<let NumLimbs: u32, let ModBits: u32>(
 
 /**
  * @brief Verify an RSA-PSS signature over a SHA-512 message hash.
- * @note The exponent `e` can be any positive integer (commonly 3 or 65537 are used for RSA).
+ * @note The exponent `e` must be odd and in [3, 2^17 - 1] (commonly 3 or 65537).
  * @return `true` if the recomputed hash H' equals the hash H recovered from the signature, `false`
  *         otherwise. A malformed encoded message (trailer, leading bits, padding, separator or
  *         salt length) fails a constraint inside this function instead of returning `false`.
