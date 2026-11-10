@@ -43,7 +43,7 @@ bignum = { tag = "v0.10.0-2", git = "https://github.com/zkpassport/noir-bignum" 
 
 ### Basic Usage
 
-The library provides a verification function for each combination of padding scheme and hash function, exposed under `noir_rsa::rsa`. Each returns a `bool` that you must `assert`. Here are examples for the two padding schemes using SHA-256; the other hash variants follow the same shape.
+The library provides a verification function for each combination of padding scheme and hash function, exposed under `noir_rsa::rsa`. Each returns a `bool` that you must `assert`. The PKCS#1 v1.5 functions never return `false`: an invalid signature fails an encoded-message check inside the function (see [Input Assumptions](#input-assumptions)). Here are examples for the two padding schemes using SHA-256; the other hash variants follow the same shape.
 
 > The same functions are also available under the per-scheme modules `noir_rsa::pkcs1v15` and `noir_rsa::pss` if you prefer to import them from there.
 
@@ -119,7 +119,7 @@ use noir_rsa::rsa::{
 - **`signature` must be a valid field element.** Build the `RuntimeBigNum` with the correct `BigNumParams` (modulus and Barrett reduction parameter). If the signature was not already validated, either call `validate_in_field` on it, or construct it with noir-bignum's `from_be_bytes` / `from_le_bytes`, which range-check the value into the field. Skipping this on an unchecked, byte-imported value can let an out-of-range limb encoding through.
 - **The modulus (public key) must NOT be a free private witness.** This is a soundness requirement, not a nicety. The library verifies the signature against whatever `BigNumParams` modulus you hand it, and does nothing to pin that modulus down. If `params` is supplied as a private, prover-controlled input, verification is **unsound**: an attacker can choose a modulus for which they can produce a valid signature over any message (e.g. one whose factorization they know, or one crafted so `sig^e mod n` equals the target encoded message) and thereby prove a "valid signature" for arbitrary data. Always bind the modulus to something the verifier trusts, e.g. expose it as a public input, hash it into the public inputs, or check it against a trusted key registry.
 - **PSS `salt_len` is a caller input** and must equal the salt length used by the signer, and be at most `MAX_SALT_LEN` (64 bytes). A mismatched salt length fails verification.
-- **The return value is a `bool` that you must `assert`.** Calling a `verify_*` function without asserting its result constrains nothing.
+- **The return value is a `bool` that you must `assert`.** For PSS, the final `H' == H` comparison is enforced only through the returned value, so not asserting it accepts any well-formed encoded message. The PKCS#1 v1.5 functions enforce every check internally and return `true`; assert their result anyway so your circuit does not rely on that.
 
 ## Examples
 
