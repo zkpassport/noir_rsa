@@ -145,6 +145,11 @@ fn test_verify_sha256_pkcs1v15_2048() {
 
 #[test]
 fn test_verify_sha256_pkcs1v15_2048_exponent_3() {
+    let (sha256_hash, signature) = exponent_3_vector();
+    assert(verify_sha256_pkcs1v15(sha256_hash, signature, 3));
+}
+
+fn exponent_3_vector() -> ([u8; 32], RBN2048) {
     // Output of `cargo run -- --msg "hello world" -e 3` in the `signature_gen` directory
     let sha256_hash: [u8; 32] = [
         185, 77, 39, 185, 147, 77, 62, 8, 165, 46, 82, 215, 218, 125, 171, 250, 196, 132, 239, 227,
@@ -219,7 +224,7 @@ fn test_verify_sha256_pkcs1v15_2048_exponent_3() {
         ],
     };
 
-    assert(verify_sha256_pkcs1v15(sha256_hash, signature, 3));
+    (sha256_hash, signature)
 }
 
 #[test]
@@ -372,6 +377,11 @@ fn test_verify_sha256_pkcs1v15_2048_exponent_107903() {
 
 #[test]
 fn smoke_test() {
+    let (hash, signature) = smoke_test_vector();
+    assert(verify_sha256_pkcs1v15(hash, signature, 65537));
+}
+
+fn smoke_test_vector() -> ([u8; 32], RBN2048) {
     // Output of `cargo run -- --msg "hello world"` in the `signature_gen` directory
     // Create runtime params:
     let modulus_limbs = [
@@ -448,7 +458,34 @@ fn smoke_test() {
 
     let signature: RBN2048 = RBN2048::from_array(params, signature_limbs);
 
-    assert(verify_sha256_pkcs1v15(hash, signature, 65537));
+    (hash, signature)
+}
+
+#[test(should_fail_with = "PKCS#1 v1.5: message hash mismatch")]
+fn test_verify_sha256_pkcs1v15_rejects_wrong_message_hash() {
+    let (mut hash, signature) = smoke_test_vector();
+    hash[0] ^= 1;
+    let _ = verify_sha256_pkcs1v15(hash, signature, 65537);
+}
+
+#[test(should_fail_with = "PKCS#1 v1.5:")]
+fn test_verify_sha256_pkcs1v15_rejects_signature_under_different_key() {
+    // Both vectors sign "hello world" with SHA-256, under different 2048-bit keys. The
+    // signature is below the other modulus, so it reaches the padding checks; the
+    // resulting EM is pseudo-random and fails the padding checks.
+    let (hash, signature) = smoke_test_vector();
+    let (_, other_key_signature) = exponent_3_vector();
+    let signature: RBN2048 =
+        RuntimeBigNum { params: other_key_signature.params, limbs: signature.limbs };
+    let _ = verify_sha256_pkcs1v15(hash, signature, 65537);
+}
+
+#[test(should_fail_with = "PKCS#1 v1.5:")]
+fn test_verify_sha256_pkcs1v15_rejects_tampered_signature() {
+    // A one-unit change to the signature gives a pseudo-random EM (see above).
+    let (hash, mut signature) = smoke_test_vector();
+    signature.limbs[0] += 1;
+    let _ = verify_sha256_pkcs1v15(hash, signature, 65537);
 }
 
 #[test]
