@@ -14,10 +14,9 @@ use bignum::RuntimeBigNum;
 use sha1::sha1;
 use sha512::{sha384, sha512};
 
-#[test]
-fn test_verify_sha256_pss_2048() {
-    let sha256_hash: [u8; 32] = sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
-    let params: Params2048 = BigNumParams::new(
+// The 2048-bit key of `test_verify_sha256_pss_2048`.
+fn sha256_pss_2048_key() -> Params2048 {
+    BigNumParams::new(
         false,
         [
             0xb2cae9b4d726643aef459696fb80d7,
@@ -59,7 +58,13 @@ fn test_verify_sha256_pss_2048() {
             0xec116198c3a4ba97b3a3976d172ba9,
             0x5d62,
         ],
-    );
+    )
+}
+
+#[test]
+fn test_verify_sha256_pss_2048() {
+    let sha256_hash: [u8; 32] = sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
+    let params: Params2048 = sha256_pss_2048_key();
     let signature: RBN2048 = RuntimeBigNum {
         params,
         limbs: [
@@ -506,11 +511,9 @@ fn test_verify_sha256_pss_1964() {
     assert(verify_sha256_pss(sha256_hash, signature, 65537, 32));
 }
 
-// Test an edge case where the key length in bytes is greater than the encoded message length
-#[test]
-fn test_verify_sha256_pss_1025() {
-    let sha256_hash: [u8; 32] = sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
-    let params: Params1025 = BigNumParams::new(
+// The 1025-bit key of `test_verify_sha256_pss_1025`.
+fn sha256_pss_1025_key() -> Params1025 {
+    BigNumParams::new(
         false,
         [
             0xf278b138628000b2652c779e852235,
@@ -534,7 +537,14 @@ fn test_verify_sha256_pss_1025() {
             0xba9c5b02995e4cee46cb5222ca73b3,
             0xafb47fe562d6306531,
         ],
-    );
+    )
+}
+
+// Test an edge case where the key length in bytes is greater than the encoded message length
+#[test]
+fn test_verify_sha256_pss_1025() {
+    let sha256_hash: [u8; 32] = sha256::sha256_var("Hello World! This is Noir-RSA".as_bytes(), 29);
+    let params: Params1025 = sha256_pss_1025_key();
 
     let signature: RBN1025 = RuntimeBigNum {
         params,
@@ -781,4 +791,37 @@ fn test_verify_sha384_pss_2048_salt_len_64() {
     };
 
     assert(verify_sha384_pss(sha384_hash, signature, 65537, 64));
+}
+
+// The three tests below pass a small integer as the signature, so sig^e mod n is an
+// encoded message nobody signed. The integers were found by searching, outside the
+// circuit, for an encoded message that passes the checks before the one under test.
+
+// 2^65537 mod n ends in 0x54.
+#[test(should_fail_with = "PSS: trailer byte is not 0xBC")]
+fn test_verify_sha256_pss_rejects_bad_trailer() {
+    let mut limbs = [0; 18];
+    limbs[0] = 2;
+    let signature: RBN2048 = RuntimeBigNum { params: sha256_pss_2048_key(), limbs };
+    let _ = verify_sha256_pss([0; 32], signature, 65537, 32);
+}
+
+// 830^65537 mod n ends in 0xBC and is at least 2^1024, so the first of its 129 bytes,
+// which lies above the 128-byte encoded message, is 0x01.
+#[test(should_fail_with = "PSS: leading byte is not 0x00")]
+fn test_verify_sha256_pss_rejects_nonzero_leading_byte() {
+    let mut limbs = [0; 9];
+    limbs[0] = 830;
+    let signature: RBN1025 = RuntimeBigNum { params: sha256_pss_1025_key(), limbs };
+    let _ = verify_sha256_pss([0; 32], signature, 65537, 32);
+}
+
+// 2087^65537 mod n ends in 0xBC and is at least 2^2047, so the top bit of maskedDB,
+// which lies above the 2047-bit encoded message, is set.
+#[test(should_fail_with = "PSS: leftmost bits of maskedDB are not zero")]
+fn test_verify_sha256_pss_rejects_nonzero_leftmost_bit() {
+    let mut limbs = [0; 18];
+    limbs[0] = 2087;
+    let signature: RBN2048 = RuntimeBigNum { params: sha256_pss_2048_key(), limbs };
+    let _ = verify_sha256_pss([0; 32], signature, 65537, 32);
 }
